@@ -13,7 +13,7 @@ It also contains the code used to create a machine learning model of the extract
 ---------------------------------------------------------
 Concerns the Cuckoo and Radare installation scripts along with batch scripts that perform the following:
 - Benign process startup and activity generation
-- Process memory dumping and collection
+- Process memory dumping and collection (for multi process dumping, script by Guy Leech - June 2016, is used)
 - Process memory collection from malicious process using cuckoo
 - Environment set-up and vm sourcing for cuckoo
 
