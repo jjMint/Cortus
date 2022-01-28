@@ -18,6 +18,6 @@ Concerns the Cuckoo and Radare installation scripts along with batch scripts tha
 - Environment set-up and vm sourcing for cuckoo
 
 ---------------------------------------------------------
-## RadarScraper
+## Cortus
 ---------------------------------------------------------
 Concerns feature extraction and storage from the process memory datasets
