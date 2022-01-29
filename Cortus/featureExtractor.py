@@ -5,8 +5,11 @@
 # Process Memory Feature Extractor used as a form of EDA for the wider machine learning model
 # Focuses on the creation of usable and quantifiable data derived through the use of radare2 on process memory dumps
 
-import r2pipe
+import getopt
 import os
+import pandas
+import r2pipe
+import sys
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -18,15 +21,20 @@ import os
 # // Feature Object
 # ---------------------------
 # Class that handles the collation and storage of a dump / processes features
-class featureCollator :
+class processObject :
 
-    inputFolder     = None
-    outputFolder    = None
+    processName  = None
 
-    def __init__(self, inputFolder, outputFolder):
-        self.inputFolder    = inputFolder
-        self.outputFolder   = outputFolder
+    headerFeatures    = None
+    memoryMapFeatures = None
+    registerFeatures  = None
+    heapFeatures      = None
+    flagFeatures      = None
+    moduleFeatures    = None
 
+
+    def __init__(self, processName):
+        self.processName = processName
 
 # --------------------------------------------------------------------------------------------
 # // Feature Collator
@@ -59,50 +67,90 @@ class memoryFeatureExtractor :
         self.maliciousInputFolder    = benignInputFolder
         self.maliciousOutputFolder   = benignOutputFolder
 
-    def extractor(self) :
-        inputDirectory = os.fsencode(self.inputFolder)
+        self.extractor(benignInputFolder)
+
+    def extractor(self, inputFolder) :
+        inputDirectory = os.fsencode(inputFolder)
 
         print("-"*50)
         print("Beginning Feature Extraction Process")
-        print("Memory Dumps to analyze: " len(os.listdir(inputDirectory)))
+        print("Memory Dumps to analyze: " + str(len(os.listdir(inputDirectory))))
         print("-"*50)
 
         for dump in os.listdir(inputDirectory) :
             dumpName = os.fsdecode(dump)
-            r2DumpFile = r2pipe.open("dumpName")
+            print("-"*50)
+            print("Analysing File: " + str(dumpName))
+            print("-"*50)
+            r2DumpFile = r2pipe.open(dumpName)
+            r2DumpFile.quit()
 
 
-    def headerFeatures(self) :
+    def createHeaderFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('ij')
+
         return None
 
-    def memoryMapFeatures(self) :
+    def createMemoryMapFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('dmj')
+
         return None
 
-    def registerFeatures(self) :
-        return None
-    
-    def heapFeatures(self) :
-        return None
+    def createRegisterFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('drj')
 
-    def sectionFeatures(self) :
-        return None
-
-    def flagFeatures(self) :
-        return None
-    
-    def moduleFeatures(self) :
         return None
     
+    def createHeapFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('dmhj')
 
-# Initial File Opening (Will need to make this flexible for each file and handle errors)
-r2 = r2pipe.open("../../../Desktop/notepad.exe_220121_221437.dmp")
+        return None
 
-dmpInfo = print(r2.cmd('ij'))
-# dmpMemoryMap = print(r2.cmd('dmj'))
-# dmpRegisters = print(r2.cmd('drj'))
-# dmpHeap = print(r2.cmd('dmhj'))
-# dmpSections = print(r2.cmd('iSj'))
-dmpFlags = print(r2.cmd('fsj'))
-dmpModules = print(r2.cmd('iSqj'))
+    def createSectionFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('iSj')
 
-r2.quit()
+        return None
+
+    def createFlagFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('fsj')
+
+        return None
+    
+    def createModuleFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('iSqj')
+
+        return None
+
+
+def main(argv) :
+    benignInputFolder      = None
+    maliciousInputFolder   = None
+    benignOutputFolder     = None
+    maliciousOutputFolder  = None
+
+
+    try :
+        opts, args = getopt.getopt(argv, "hi:o", ["iBenignFolder=", "oBenignFolder=", "iMaliciousFolder=", "oMaliciousFolder="])
+    except getopt.GetoptError :
+        print("Please provide and input and ouput folder location: featureExtractor.py -bi <inputBenignFolder> -bo <outputBenignFolder> -mi <inputMaliciousFolder> -mo <outputMaliciousFolder>")
+        sys.exit()
+    
+    for opt, arg in opts:
+        if opt == '-h':
+            print("featureExtractor.py -bi <inputBenignFolder> -bo <outputBenignFolder> -mi <inputMaliciousFolder> -mo <outputMaliciousFolder>")
+            sys.exit()
+        elif opt in ("-i", "--iBenignFolder"):
+            benignInputFolder = arg
+        elif opt in ("-o", "--oBenignFolder"):
+            benignOutputFolder = arg
+        elif opt in ("-mi", "--iMaliciousFolder"):
+            maliciousInputFolder = arg
+        elif opt in ("-mo", "--oMaliciousFolder"):
+            maliciousOutputFolder = arg
+
+    featureExtractor = memoryFeatureExtractor(benignInputFolder, benignOutputFolder, maliciousInputFolder, maliciousOutputFolder)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+
