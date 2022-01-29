@@ -6,8 +6,10 @@
 # Focuses on the creation of usable and quantifiable data derived through the use of radare2 on process memory dumps
 
 import getopt
+import json
 import os
-import pandas
+import pandas as pd
+import pprint
 import r2pipe
 import sys
 
@@ -23,7 +25,7 @@ import sys
 # Class that handles the collation and storage of a dump / processes features
 class processObject :
 
-    processName  = None
+    processName       = None
 
     headerFeatures    = None
     memoryMapFeatures = None
@@ -35,6 +37,14 @@ class processObject :
 
     def __init__(self, processName):
         self.processName = processName
+
+    def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
+        pp = pprint.PrettyPrinter(indent=4, compact=True)
+        
+        # self.headerFeatures = headerFeatures
+        pprint.pprint(headerBinFeatures)
+        pprint.pprint(headerCoreFeatures)
+
 
 # --------------------------------------------------------------------------------------------
 # // Feature Collator
@@ -70,7 +80,9 @@ class memoryFeatureExtractor :
         self.extractor(benignInputFolder)
 
     def extractor(self, inputFolder) :
-        inputDirectory = os.fsencode(inputFolder)
+        inputDirectory       = os.fsencode(inputFolder)
+        benignProcessList    = []
+        maliciousProcessList = []
 
         print("-"*50)
         print("Beginning Feature Extraction Process")
@@ -79,17 +91,34 @@ class memoryFeatureExtractor :
 
         for dump in os.listdir(inputDirectory) :
             dumpName = os.fsdecode(dump)
+            dumpPath = os.path.join(os.fsdecode(inputDirectory), dumpName)
+
             print("-"*50)
             print("Analysing File: " + str(dumpName))
             print("-"*50)
-            r2DumpFile = r2pipe.open(dumpName)
+
+            process = processObject(dumpName)
+            r2DumpFile = r2pipe.open(str(dumpPath))
+
+            headerBinFeatures, headerCoreFeatures = self.createHeaderFeatures(r2DumpFile)
+
+            process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
+
+            benignProcessList.append(process)
+
             r2DumpFile.quit()
 
 
     def createHeaderFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('ij')
+        dmpInfo = json.loads(dmpInfo)
 
-        return None
+        headerBinFeatures = dmpInfo['bin']
+        headerBinFeatures = pd.json_normalize(headerBinFeatures)
+        headerCoreFeatures = dmpInfo['core']
+        headerCoreFeatures = pd.json_normalize(headerCoreFeatures)
+
+        return headerBinFeatures, headerCoreFeatures
 
     def createMemoryMapFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('dmj')
