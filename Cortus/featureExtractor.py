@@ -4,6 +4,7 @@
 # Author: Joshua Keegan
 # Process Memory Feature Extractor used as a form of EDA for the wider machine learning model
 # Focuses on the creation of usable and quantifiable data derived through the use of radare2 on process memory dumps
+# ------------------------------------------------------------------------------------------------------------------
 
 import getopt
 import json
@@ -24,7 +25,6 @@ import sys
 # ---------------------------
 # Class that handles the collation and storage of a dump / processes features
 class processObject :
-
     processName       = None
 
     headerFeatures    = None
@@ -34,25 +34,20 @@ class processObject :
     flagFeatures      = None
     moduleFeatures    = None
 
-
     def __init__(self, processName):
         self.processName = processName
 
     def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
-        pp = pprint.PrettyPrinter(indent=4, compact=True)
+        # pp = pprint.PrettyPrinter(indent=4, compact=True)
+        self.headerFeatures = pd.concat([headerBinFeatures, headerCoreFeatures], axis=1)
+        # pprint.pprint(self.headerFeatures)
         
-        # self.headerFeatures = headerFeatures
-        pprint.pprint(headerBinFeatures)
-        pprint.pprint(headerCoreFeatures)
-
 
 # --------------------------------------------------------------------------------------------
 # // Feature Collator
 # ---------------------------
 # Class that handles input and output pathing along with collation of features
 class featureCollator :
-
-    inputFolder     = None
     outputFolder    = None
 
     def __init__(self, inputFolder, outputFolder):
@@ -65,7 +60,6 @@ class featureCollator :
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with containing feature extraction methods
 class memoryFeatureExtractor :
-
     benignInputFolder      = None
     maliciousInputFolder   = None
     benignOutputFolder     = None
@@ -101,6 +95,13 @@ class memoryFeatureExtractor :
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             headerBinFeatures, headerCoreFeatures = self.createHeaderFeatures(r2DumpFile)
+            memoryMapFeatures = self.createMemoryMapFeatures(r2DumpFile)
+            # registryFeatures = self.createRegisterFeatures(r2DumpFile)
+            heapFeatures = self.createHeapFeatures(r2DumpFile)
+            # sectionFeatures = self.createSectionFeatures(r2DumpFile)
+            flagFeatures = self.createFlagFeatures(r2DumpFile)
+            # moduleFeatures = self.createModuleFeatures(r2DumpFile)
+            
 
             process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
 
@@ -122,31 +123,37 @@ class memoryFeatureExtractor :
 
     def createMemoryMapFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('dmj')
+        pprint.pprint(json.loads(dmpInfo))
 
         return None
 
     def createRegisterFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('drj')
+        pprint.pprint(json.loads(dmpInfo))
 
         return None
     
     def createHeapFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('dmhj')
+        pprint.pprint(dmpInfo)
 
         return None
 
     def createSectionFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iSj')
+        pprint.pprint(json.loads(dmpInfo))
 
         return None
 
     def createFlagFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('fsj')
+        pprint.pprint(json.loads(dmpInfo))
 
         return None
     
     def createModuleFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iSqj')
+        pprint.pprint(json.loads(dmpInfo))
 
         return None
 
@@ -157,24 +164,23 @@ def main(argv) :
     benignOutputFolder     = None
     maliciousOutputFolder  = None
 
-
     try :
         opts, args = getopt.getopt(argv, "hi:o", ["iBenignFolder=", "oBenignFolder=", "iMaliciousFolder=", "oMaliciousFolder="])
     except getopt.GetoptError :
-        print("Please provide and input and ouput folder location: featureExtractor.py -bi <inputBenignFolder> -bo <outputBenignFolder> -mi <inputMaliciousFolder> -mo <outputMaliciousFolder>")
+        print("Please provide and input and ouput folder location: featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
         sys.exit()
     
     for opt, arg in opts:
         if opt == '-h':
-            print("featureExtractor.py -bi <inputBenignFolder> -bo <outputBenignFolder> -mi <inputMaliciousFolder> -mo <outputMaliciousFolder>")
+            print("featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
             sys.exit()
         elif opt in ("-i", "--iBenignFolder"):
             benignInputFolder = arg
         elif opt in ("-o", "--oBenignFolder"):
             benignOutputFolder = arg
-        elif opt in ("-mi", "--iMaliciousFolder"):
+        elif opt in ("-b", "--iMaliciousFolder"):
             maliciousInputFolder = arg
-        elif opt in ("-mo", "--oMaliciousFolder"):
+        elif opt in ("-g", "--oMaliciousFolder"):
             maliciousOutputFolder = arg
 
     featureExtractor = memoryFeatureExtractor(benignInputFolder, benignOutputFolder, maliciousInputFolder, maliciousOutputFolder)
