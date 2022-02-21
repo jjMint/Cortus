@@ -13,6 +13,7 @@ import pandas as pd
 import pprint
 import r2pipe
 import sys
+import typing
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -25,30 +26,39 @@ import sys
 # ---------------------------
 # Class that handles the collation and storage of a dump / processes features
 class processObject :
-    processName       = None
+    processName: str  = None
 
     headerFeatures    = None
-    memoryMapFeatures = None
+    sectionFeatures   = None
     registerFeatures  = None
-    heapFeatures      = None
     flagFeatures      = None
-    moduleFeatures    = None
+    stringsFeatures   = None
 
     def __init__(self, processName):
         self.processName = processName
 
     def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
-        # pp = pprint.PrettyPrinter(indent=4, compact=True)
         self.headerFeatures = pd.concat([headerBinFeatures, headerCoreFeatures], axis=1)
         # pprint.pprint(self.headerFeatures)
         
+    def setRegistryFeatures(self, registryFeatures) :
+        self.registryFeatures = pd.concat([registryFeatures], axis=1)
+        # pprint.pprint(self.registryFeatures)
 
+    def setFlagFeatures(self, flagFeatures) :
+        self.flagFeatures = pd.concat([flagFeatures], axis=1)
+        # pprint.pprint(self.flagFeatures)
+
+    def setSectionFeatures(self, sectionFeatures) :
+        self.sectionFeatures = pd.concat([sectionFeatures], axis=1)
+        # pprint.pprint(self.sectionFeatures)
+        
 # --------------------------------------------------------------------------------------------
-# // Feature Collator
+# // Process Feature Collator
 # ---------------------------
 # Class that handles input and output pathing along with collation of features
 class featureCollator :
-    outputFolder    = None
+    outputFolder: str   = None
 
     def __init__(self, inputFolder, outputFolder):
         self.inputFolder    = inputFolder
@@ -60,23 +70,23 @@ class featureCollator :
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with containing feature extraction methods
 class memoryFeatureExtractor :
-    benignInputFolder      = None
-    maliciousInputFolder   = None
-    benignOutputFolder     = None
-    maliciousOutputFolder  = None
+    benignInputFolder:     str   = None
+    maliciousInputFolder:  str   = None
+    benignOutputFolder:    str   = None
+    maliciousOutputFolder: str   = None
 
     def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder):
-        self.benignInputFolder       = benignInputFolder
-        self.benignOutputFolder      = benignOutputFolder
-        self.maliciousInputFolder    = benignInputFolder
-        self.maliciousOutputFolder   = benignOutputFolder
+        self.benignInputFolder: str      = benignInputFolder
+        self.benignOutputFolder: str     = benignOutputFolder
+        self.maliciousInputFolder: str   = benignInputFolder
+        self.maliciousOutputFolder: str  = benignOutputFolder
 
         self.extractor(benignInputFolder)
 
     def extractor(self, inputFolder) :
-        inputDirectory       = os.fsencode(inputFolder)
-        benignProcessList    = []
-        maliciousProcessList = []
+        inputDirectory: str        = os.fsencode(inputFolder)
+        benignProcessList: list    = []
+        maliciousProcessList: list = []
 
         print("-"*50)
         print("Beginning Feature Extraction Process")
@@ -95,15 +105,15 @@ class memoryFeatureExtractor :
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             headerBinFeatures, headerCoreFeatures = self.createHeaderFeatures(r2DumpFile)
-            memoryMapFeatures = self.createMemoryMapFeatures(r2DumpFile)
-            # registryFeatures = self.createRegisterFeatures(r2DumpFile)
-            heapFeatures = self.createHeapFeatures(r2DumpFile)
-            # sectionFeatures = self.createSectionFeatures(r2DumpFile)
+            registryFeatures = self.createRegisterFeatures(r2DumpFile)
+            sectionFeatures = self.createSectionFeatures(r2DumpFile)
             flagFeatures = self.createFlagFeatures(r2DumpFile)
-            # moduleFeatures = self.createModuleFeatures(r2DumpFile)
+            otherFeatures = self.createOtherFeatures(r2DumpFile)
             
-
             process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
+            process.setRegistryFeatures(registryFeatures)
+            process.setSectionFeatures(sectionFeatures)
+            process.setFlagFeatures(flagFeatures)
 
             benignProcessList.append(process)
 
@@ -121,42 +131,64 @@ class memoryFeatureExtractor :
 
         return headerBinFeatures, headerCoreFeatures
 
-    def createMemoryMapFeatures(self, r2DumpFile) :
-        dmpInfo = r2DumpFile.cmd('dmj')
-        pprint.pprint(json.loads(dmpInfo))
-
-        return None
 
     def createRegisterFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('drj')
-        pprint.pprint(json.loads(dmpInfo))
+        dmpInfo = json.loads(dmpInfo)
 
-        return None
+        registryFeatures = dmpInfo
+        registryFeatures = pd.json_normalize(registryFeatures)
+
+        return registryFeatures
     
-    def createHeapFeatures(self, r2DumpFile) :
-        dmpInfo = r2DumpFile.cmd('dmhj')
-        pprint.pprint(dmpInfo)
-
-        return None
-
+    # Module and sections result in same data
     def createSectionFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iSj')
-        pprint.pprint(json.loads(dmpInfo))
+        dmpInfo = json.loads(dmpInfo)
 
-        return None
+        # Add in permissions per section
+        # dmpInfo = r2DumpFile.cmd('omj')
+        # dmpInfo = json.loads(dmpInfo)
+        # pprint.pprint(dmpInfo)
+
+        sectionFeaturesNameSize = []
+        for section in dmpInfo:
+            sectionFeaturesNameSize.append({section.get('name'): section.get('size')})
+
+        sectionFeaturesNameSize = pd.DataFrame.from_dict(sectionFeaturesNameSize)
+        sectionFeaturesNameSize = sectionFeaturesNameSize.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
+        sectionFeaturesNameSize = sectionFeaturesNameSize.T
+        sectionFeaturesNameSize.columns = ['size']
+
+        return sectionFeaturesNameSize
 
     def createFlagFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('fsj')
-        pprint.pprint(json.loads(dmpInfo))
+        dmpInfo = json.loads(dmpInfo)
 
-        return None
-    
-    def createModuleFeatures(self, r2DumpFile) :
-        dmpInfo = r2DumpFile.cmd('iSqj')
-        pprint.pprint(json.loads(dmpInfo))
+        flagFeatures = []
+        for flag in dmpInfo[1:]:
+            flagFeatures.append({flag.get('name'): flag.get('count')})
+        flagFeatures = pd.DataFrame.from_dict(flagFeatures)
+        flagFeatures = flagFeatures.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
 
-        return None
+        return flagFeatures
 
+
+    def createOtherFeatures(self, r2DumpFile) :
+        # Useful other features (for review)
+        # dmpInfo = r2DumpFile.cmd('dbtj')
+        # dmpInfo = r2DumpFile.cmd('ir')
+        # dmpInfo = r2DumpFile.cmd('iz')
+        # dmpInfo = r2DumpFile.cmd('iij')
+        # dmpInfo = r2DumpFile.cmd('ie')
+        # dmpInfo = r2DumpFile.cmd('iI')
+
+        # dmpInfo = json.loads(dmpInfo)
+        print(dmpInfo)
+        # pprint.pprint(dmpInfo)
+
+        # return flagFeatures
 
 def main(argv) :
     benignInputFolder      = None
