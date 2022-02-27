@@ -19,46 +19,84 @@ import typing
 # // Utility Functions
 # Collection of functions that peform tasks generalised across the feature processes
 # --------------------------------------------------------------------------------------------
+def flattenDataFrame(nestedDataFrame) :
+    flattenedDataFrame = nestedDataFrame.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
+    flattenedDataFrame = flattenedDataFrame.T
 
+    return flattenedDataFrame
 
 # --------------------------------------------------------------------------------------------
 # // Feature Object
-# ---------------------------
+# --------------------------------------------------------------------------------------------
 # Class that handles the collation and storage of a dump / processes features
 class processObject :
-    processName: str  = None
+    processName  = None
 
-    headerFeatures    = None
-    sectionFeatures   = None
-    registerFeatures  = None
-    flagFeatures      = None
-    stringsFeatures   = None
+    headerFeatures      = None
+    registryFeatures    = None
+    flagFeatures        = None
+    sectionFeatures     = None
+    entryPointFeatures  = None
+    relocationFeatures  = None
+    stringsFeatures     = None
+    namespaceFeatures   = None
+    importFeatures      = None
 
     def __init__(self, processName):
         self.processName = processName
 
+#--------------------------------------------------------------------------------------------
+# Process Setters
+#--------------------------------------------------------------------------------------------
     def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
         self.headerFeatures = pd.concat([headerBinFeatures, headerCoreFeatures], axis=1)
-        # pprint.pprint(self.headerFeatures)
+        pprint.pprint(self.headerFeatures)
         
     def setRegistryFeatures(self, registryFeatures) :
         self.registryFeatures = pd.concat([registryFeatures], axis=1)
-        # pprint.pprint(self.registryFeatures)
+        pprint.pprint(self.registryFeatures)
 
     def setFlagFeatures(self, flagFeatures) :
         self.flagFeatures = pd.concat([flagFeatures], axis=1)
-        # pprint.pprint(self.flagFeatures)
+        pprint.pprint(self.flagFeatures)
 
     def setSectionFeatures(self, sectionFeatures) :
         self.sectionFeatures = pd.concat([sectionFeatures], axis=1)
-        # pprint.pprint(self.sectionFeatures)
+        pprint.pprint(self.sectionFeatures)
         
+    def setEntryPointFeatures(self, entryPointFeatures) :
+        self.entryPointFeatures = pd.concat([entryPointFeatures], axis=1)
+        pprint.pprint(self.entryPointFeatures)
+        
+    def setRelocationFeatures(self, relocationFeatures) :
+        self.relocationFeatures = pd.concat([relocationFeatures], axis=1)
+        pprint.pprint(self.relocationFeatures)
+
+    def setStringFeatures(self, stringsFeatures) :
+        self.stringsFeatures = pd.concat([stringsFeatures], axis=1)
+        pprint.pprint(self.stringsFeatures)
+
+    def setNamespaceFeatures(self, namespaceFeatures) :
+        self.namespaceFeatures = pd.concat([namespaceFeatures], axis=1)
+        pprint.pprint(self.namespaceFeatures)
+
+    def setImportFeatures(self, importFeatures) :
+        self.importFeatures = pd.concat([importFeatures], axis=1)
+        pprint.pprint(self.importFeatures)
+
+#--------------------------------------------------------------------------------------------
+# Collater functions
+#-------------------------------------------------------------------------------------------- 
+    def getProcessFeatureTable(self) :
+        return None
+
+
 # --------------------------------------------------------------------------------------------
 # // Process Feature Collator
-# ---------------------------
+# --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with collation of features
 class featureCollator :
-    outputFolder: str   = None
+    outputFolder   = None
 
     def __init__(self, inputFolder, outputFolder):
         self.inputFolder    = inputFolder
@@ -70,23 +108,23 @@ class featureCollator :
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with containing feature extraction methods
 class memoryFeatureExtractor :
-    benignInputFolder:     str   = None
-    maliciousInputFolder:  str   = None
-    benignOutputFolder:    str   = None
-    maliciousOutputFolder: str   = None
+    benignInputFolder       = None
+    maliciousInputFolder    = None
+    benignOutputFolder      = None
+    maliciousOutputFolder   = None
 
     def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder):
-        self.benignInputFolder: str      = benignInputFolder
-        self.benignOutputFolder: str     = benignOutputFolder
-        self.maliciousInputFolder: str   = benignInputFolder
-        self.maliciousOutputFolder: str  = benignOutputFolder
+        self.benignInputFolder       = benignInputFolder
+        self.benignOutputFolder      = benignOutputFolder
+        self.maliciousInputFolder    = benignInputFolder
+        self.maliciousOutputFolder   = benignOutputFolder
 
         self.extractor(benignInputFolder)
 
     def extractor(self, inputFolder) :
-        inputDirectory: str        = os.fsencode(inputFolder)
-        benignProcessList: list    = []
-        maliciousProcessList: list = []
+        inputDirectory        = os.fsencode(inputFolder)
+        benignProcessList     = []
+        maliciousProcessList  = []
 
         print("-"*50)
         print("Beginning Feature Extraction Process")
@@ -104,19 +142,29 @@ class memoryFeatureExtractor :
             process = processObject(dumpName)
             r2DumpFile = r2pipe.open(str(dumpPath))
 
+            # Collect all relevant feature sets for the process dump
             headerBinFeatures, headerCoreFeatures = self.createHeaderFeatures(r2DumpFile)
-            registryFeatures = self.createRegisterFeatures(r2DumpFile)
-            sectionFeatures = self.createSectionFeatures(r2DumpFile)
-            flagFeatures = self.createFlagFeatures(r2DumpFile)
-            otherFeatures = self.createOtherFeatures(r2DumpFile)
-            
+            registryFeatures                      = self.createRegisterFeatures(r2DumpFile)
+            sectionFeatures                       = self.createSectionFeatures(r2DumpFile)
+            flagFeatures                          = self.createFlagFeatures(r2DumpFile)
+            entryPointFeatures                    = self.createEntryPointFeatures(r2DumpFile)
+            relocationFeatures                    = self.createRelocationFeatures(r2DumpFile)
+            stringsFeatures                       = self.createStringFeatures(r2DumpFile)
+            namespaceFeatures                     = self.createNamespaceSyscallFeatures(r2DumpFile)
+            importFeatures                        = self.createImportsFeatures(r2DumpFile)
+
+            # Create the process object
             process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
             process.setRegistryFeatures(registryFeatures)
             process.setSectionFeatures(sectionFeatures)
             process.setFlagFeatures(flagFeatures)
+            process.setEntryPointFeatures(entryPointFeatures)
+            process.setRelocationFeatures(relocationFeatures)
+            process.setStringFeatures(stringsFeatures)
+            process.setNamespaceFeatures(namespaceFeatures)
+            process.setImportFeatures(importFeatures)
 
             benignProcessList.append(process)
-
             r2DumpFile.quit()
 
 
@@ -128,7 +176,6 @@ class memoryFeatureExtractor :
         headerBinFeatures = pd.json_normalize(headerBinFeatures)
         headerCoreFeatures = dmpInfo['core']
         headerCoreFeatures = pd.json_normalize(headerCoreFeatures)
-
         return headerBinFeatures, headerCoreFeatures
 
 
@@ -138,7 +185,6 @@ class memoryFeatureExtractor :
 
         registryFeatures = dmpInfo
         registryFeatures = pd.json_normalize(registryFeatures)
-
         return registryFeatures
     
     # Module and sections result in same data
@@ -146,49 +192,69 @@ class memoryFeatureExtractor :
         dmpInfo = r2DumpFile.cmd('iSj')
         dmpInfo = json.loads(dmpInfo)
 
-        # Add in permissions per section
-        # dmpInfo = r2DumpFile.cmd('omj')
-        # dmpInfo = json.loads(dmpInfo)
-        # pprint.pprint(dmpInfo)
-
         sectionFeaturesNameSize = []
+        sectionFeaturesNamePerms = []
         for section in dmpInfo:
             sectionFeaturesNameSize.append({section.get('name'): section.get('size')})
+            sectionFeaturesNamePerms.append({section.get('name'): section.get('perm')})
 
-        sectionFeaturesNameSize = pd.DataFrame.from_dict(sectionFeaturesNameSize)
-        sectionFeaturesNameSize = sectionFeaturesNameSize.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
-        sectionFeaturesNameSize = sectionFeaturesNameSize.T
+        sectionFeaturesNameSize = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNameSize))
         sectionFeaturesNameSize.columns = ['size']
 
-        return sectionFeaturesNameSize
+        sectionFeaturesNamePerms = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNamePerms))
+        sectionFeaturesNamePerms.columns = ['perms']
+
+        sectionFeatures = sectionFeaturesNamePerms.join(sectionFeaturesNameSize)
+        return sectionFeatures
 
     def createFlagFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('fsj')
         dmpInfo = json.loads(dmpInfo)
 
-        flagFeatures = []
-        for flag in dmpInfo[1:]:
-            flagFeatures.append({flag.get('name'): flag.get('count')})
-        flagFeatures = pd.DataFrame.from_dict(flagFeatures)
-        flagFeatures = flagFeatures.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
-
+        flagFeatures = pd.DataFrame(dmpInfo)
         return flagFeatures
 
+    def createEntryPointFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('dbtj')
+        dmpInfo = json.loads(dmpInfo)
 
-    def createOtherFeatures(self, r2DumpFile) :
-        # Useful other features (for review)
-        # dmpInfo = r2DumpFile.cmd('dbtj')
-        # dmpInfo = r2DumpFile.cmd('ir')
-        # dmpInfo = r2DumpFile.cmd('iz')
-        # dmpInfo = r2DumpFile.cmd('iij')
-        # dmpInfo = r2DumpFile.cmd('ie')
-        # dmpInfo = r2DumpFile.cmd('iI')
+        entryPointFeatures = pd.DataFrame(dmpInfo)
+        return entryPointFeatures
 
-        # dmpInfo = json.loads(dmpInfo)
-        print(dmpInfo)
-        # pprint.pprint(dmpInfo)
+    def createRelocationFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('irj')
+        dmpInfo = json.loads(dmpInfo)
 
-        # return flagFeatures
+        relocationFeatures = pd.DataFrame(dmpInfo)
+        return relocationFeatures
+
+    def createStringFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('izj')
+        dmpInfo = json.loads(dmpInfo)
+
+        stringsFeatures = pd.DataFrame(dmpInfo)
+        return stringsFeatures
+
+    def createNamespaceSyscallFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('kj syscall/*')
+        dmpInfo = json.loads(dmpInfo)
+
+        # Key short for "analyse"
+        namespaceFeatures = pd.DataFrame(dmpInfo['anal'])
+        return namespaceFeatures
+
+    def createImportsFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('iij')
+        dmpInfo = json.loads(dmpInfo)
+
+        importFeatures = pd.DataFrame(dmpInfo)
+        return importFeatures
+
+    # Significant parsing work required (later on)
+    # def createLibraryFeatures(self, r2DumpFile) :
+    #     dmpInfo = r2DumpFile.cmd('ilj')
+    #     pprint.pprint(dmpInfo)
+    #     return None
 
 def main(argv) :
     benignInputFolder      = None
