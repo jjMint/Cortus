@@ -1,8 +1,7 @@
 import logging
 import glob
 import time
-imoprt os
-
+import os
 
 log.info("Trying process: " + str(self.pid))
 

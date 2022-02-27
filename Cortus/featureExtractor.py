@@ -2,18 +2,15 @@
 # Introduction
 # ------------------------------------------------------------------------------------------------------------------
 # Author: Joshua Keegan
-# Process Memory Feature Extractor used as a form of EDA for the wider machine learning model
-# Focuses on the creation of usable and quantifiable data derived through the use of radare2 on process memory dumps
+# Process Memory Feature Extractor class that defines the process of extracting features using radare2
 # ------------------------------------------------------------------------------------------------------------------
 
-import getopt
 import json
 import os
 import pandas as pd
-import pprint
 import r2pipe
-import sys
-import typing
+
+from process import Process
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -25,89 +22,12 @@ def flattenDataFrame(nestedDataFrame) :
 
     return flattenedDataFrame
 
-# --------------------------------------------------------------------------------------------
-# // Feature Object
-# --------------------------------------------------------------------------------------------
-# Class that handles the collation and storage of a dump / processes features
-class processObject :
-    processName  = None
 
-    headerFeatures      = None
-    registryFeatures    = None
-    flagFeatures        = None
-    sectionFeatures     = None
-    entryPointFeatures  = None
-    relocationFeatures  = None
-    stringsFeatures     = None
-    namespaceFeatures   = None
-    importFeatures      = None
-
-    def __init__(self, processName):
-        self.processName = processName
-
-#--------------------------------------------------------------------------------------------
-# Process Setters
-#--------------------------------------------------------------------------------------------
-    def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
-        self.headerFeatures = pd.concat([headerBinFeatures, headerCoreFeatures], axis=1)
-        pprint.pprint(self.headerFeatures)
-        
-    def setRegistryFeatures(self, registryFeatures) :
-        self.registryFeatures = pd.concat([registryFeatures], axis=1)
-        pprint.pprint(self.registryFeatures)
-
-    def setFlagFeatures(self, flagFeatures) :
-        self.flagFeatures = pd.concat([flagFeatures], axis=1)
-        pprint.pprint(self.flagFeatures)
-
-    def setSectionFeatures(self, sectionFeatures) :
-        self.sectionFeatures = pd.concat([sectionFeatures], axis=1)
-        pprint.pprint(self.sectionFeatures)
-        
-    def setEntryPointFeatures(self, entryPointFeatures) :
-        self.entryPointFeatures = pd.concat([entryPointFeatures], axis=1)
-        pprint.pprint(self.entryPointFeatures)
-        
-    def setRelocationFeatures(self, relocationFeatures) :
-        self.relocationFeatures = pd.concat([relocationFeatures], axis=1)
-        pprint.pprint(self.relocationFeatures)
-
-    def setStringFeatures(self, stringsFeatures) :
-        self.stringsFeatures = pd.concat([stringsFeatures], axis=1)
-        pprint.pprint(self.stringsFeatures)
-
-    def setNamespaceFeatures(self, namespaceFeatures) :
-        self.namespaceFeatures = pd.concat([namespaceFeatures], axis=1)
-        pprint.pprint(self.namespaceFeatures)
-
-    def setImportFeatures(self, importFeatures) :
-        self.importFeatures = pd.concat([importFeatures], axis=1)
-        pprint.pprint(self.importFeatures)
-
-#--------------------------------------------------------------------------------------------
-# Collater functions
-#-------------------------------------------------------------------------------------------- 
-    def getProcessFeatureTable(self) :
-        return None
-
-
-# --------------------------------------------------------------------------------------------
-# // Process Feature Collator
-# --------------------------------------------------------------------------------------------
-# Class that handles input and output pathing along with collation of features
-class featureCollator :
-    outputFolder   = None
-
-    def __init__(self, inputFolder, outputFolder):
-        self.inputFolder    = inputFolder
-        self.outputFolder   = outputFolder
-
-    
 # --------------------------------------------------------------------------------------------
 # // Memory Feature Extractor
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with containing feature extraction methods
-class memoryFeatureExtractor :
+class MemoryFeatureExtractor :
     benignInputFolder       = None
     maliciousInputFolder    = None
     benignOutputFolder      = None
@@ -139,7 +59,7 @@ class memoryFeatureExtractor :
             print("Analysing File: " + str(dumpName))
             print("-"*50)
 
-            process = processObject(dumpName)
+            process = Process(dumpName)
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             # Collect all relevant feature sets for the process dump
@@ -249,41 +169,3 @@ class memoryFeatureExtractor :
 
         importFeatures = pd.DataFrame(dmpInfo)
         return importFeatures
-
-    # Significant parsing work required (later on)
-    # def createLibraryFeatures(self, r2DumpFile) :
-    #     dmpInfo = r2DumpFile.cmd('ilj')
-    #     pprint.pprint(dmpInfo)
-    #     return None
-
-def main(argv) :
-    benignInputFolder      = None
-    maliciousInputFolder   = None
-    benignOutputFolder     = None
-    maliciousOutputFolder  = None
-
-    try :
-        opts, args = getopt.getopt(argv, "hi:o", ["iBenignFolder=", "oBenignFolder=", "iMaliciousFolder=", "oMaliciousFolder="])
-    except getopt.GetoptError :
-        print("Please provide and input and ouput folder location: featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
-        sys.exit()
-    
-    for opt, arg in opts:
-        if opt == '-h':
-            print("featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
-            sys.exit()
-        elif opt in ("-i", "--iBenignFolder"):
-            benignInputFolder = arg
-        elif opt in ("-o", "--oBenignFolder"):
-            benignOutputFolder = arg
-        elif opt in ("-b", "--iMaliciousFolder"):
-            maliciousInputFolder = arg
-        elif opt in ("-g", "--oMaliciousFolder"):
-            maliciousOutputFolder = arg
-
-    featureExtractor = memoryFeatureExtractor(benignInputFolder, benignOutputFolder, maliciousInputFolder, maliciousOutputFolder)
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
