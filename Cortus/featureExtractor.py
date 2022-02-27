@@ -59,7 +59,7 @@ class MemoryFeatureExtractor :
             print("Analysing File: " + str(dumpName))
             print("-"*50)
 
-            process = Process(dumpName)
+            process = Process("{}_benign".format(dumpName))
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             # Collect all relevant feature sets for the process dump
@@ -124,7 +124,7 @@ class MemoryFeatureExtractor :
         sectionFeaturesNamePerms = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNamePerms))
         sectionFeaturesNamePerms.columns = ['perms']
 
-        sectionFeatures = sectionFeaturesNamePerms.join(sectionFeaturesNameSize)
+        sectionFeatures = sectionFeaturesNamePerms.join(sectionFeaturesNameSize).T
         return sectionFeatures
 
     def createFlagFeatures(self, r2DumpFile) :
@@ -132,6 +132,10 @@ class MemoryFeatureExtractor :
         dmpInfo = json.loads(dmpInfo)
 
         flagFeatures = pd.DataFrame(dmpInfo)
+        flagFeatures = flagFeatures.drop(['selected'], axis=1)
+        flagFeatures = flagFeatures.set_index('name')
+
+        flagFeatures = flagFeatures.T.reset_index(drop=True)
         return flagFeatures
 
     def createEntryPointFeatures(self, r2DumpFile) :
@@ -152,7 +156,7 @@ class MemoryFeatureExtractor :
         dmpInfo = r2DumpFile.cmd('izj')
         dmpInfo = json.loads(dmpInfo)
 
-        stringsFeatures = pd.DataFrame(dmpInfo)
+        stringsFeatures = pd.DataFrame(dmpInfo).drop(['blocks', 'paddr', 'vaddr'], axis=1)
         return stringsFeatures
 
     def createNamespaceSyscallFeatures(self, r2DumpFile) :
@@ -160,12 +164,12 @@ class MemoryFeatureExtractor :
         dmpInfo = json.loads(dmpInfo)
 
         # Key short for "analyse"
-        namespaceFeatures = pd.DataFrame(dmpInfo['anal'])
+        namespaceFeatures = pd.DataFrame(dmpInfo['anal']).T.reset_index(drop=True)
         return namespaceFeatures
 
     def createImportsFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iij')
         dmpInfo = json.loads(dmpInfo)
 
-        importFeatures = pd.DataFrame(dmpInfo)
+        importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1)
         return importFeatures
