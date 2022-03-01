@@ -8,9 +8,12 @@
 import json
 import os
 import pandas as pd
+import pprint
 import r2pipe
 
 from process import Process
+from sklearn.feature_extraction import DictVectorizer
+
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -32,6 +35,8 @@ class MemoryFeatureExtractor :
     maliciousInputFolder    = None
     benignOutputFolder      = None
     maliciousOutputFolder   = None
+    benignProcessList     = []
+    maliciousProcessList  = []
 
     def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder):
         self.benignInputFolder       = benignInputFolder
@@ -41,17 +46,17 @@ class MemoryFeatureExtractor :
 
         self.extractor(benignInputFolder)
 
-    def extractor(self, inputFolder) :
-        inputDirectory        = os.fsencode(inputFolder)
-        benignProcessList     = []
-        maliciousProcessList  = []
+    def extractor(self, benignInputFolder, maliciousInputFolder) :
+        benignInputDirectory     = os.fsencode(benignInputFolder)
+        maliciousInputDirectory  = os.fsencode(maliciousInputFolder)
+
 
         print("-"*50)
         print("Beginning Feature Extraction Process")
         print("Memory Dumps to analyze: " + str(len(os.listdir(inputDirectory))))
         print("-"*50)
 
-        for dump in os.listdir(inputDirectory) :
+        for dump in os.listdir(benignInputDirectory) :
             dumpName = os.fsdecode(dump)
             dumpPath = os.path.join(os.fsdecode(inputDirectory), dumpName)
 
@@ -63,28 +68,78 @@ class MemoryFeatureExtractor :
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             # Collect all relevant feature sets for the process dump
-            headerBinFeatures, headerCoreFeatures = self.createHeaderFeatures(r2DumpFile)
-            registryFeatures                      = self.createRegisterFeatures(r2DumpFile)
-            sectionFeatures                       = self.createSectionFeatures(r2DumpFile)
-            flagFeatures                          = self.createFlagFeatures(r2DumpFile)
-            entryPointFeatures                    = self.createEntryPointFeatures(r2DumpFile)
-            relocationFeatures                    = self.createRelocationFeatures(r2DumpFile)
-            stringsFeatures                       = self.createStringFeatures(r2DumpFile)
-            namespaceFeatures                     = self.createNamespaceSyscallFeatures(r2DumpFile)
-            importFeatures                        = self.createImportsFeatures(r2DumpFile)
+            headerBinFeatures, headerCoreFeatures               = self.createHeaderFeatures(r2DumpFile)
+            registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+            sectionFeaturesNameSize, sectionFeaturesNamePerms   = self.createSectionFeatures(r2DumpFile)
+            flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
+            entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
+            (relocationFeaturesName, relocationFeaturesType, 
+            relocationFeaturesVaddr, relocationFeaturesPaddr, 
+            relocationFeaturesIsIFunc)                          = self.createRelocationFeatures(r2DumpFile)
+            (stringsFeaturesOrdinal, stringsFeaturesSize, 
+            stringsFeaturesLength, stringsFeaturesSection, 
+            stringsFeaturesType, stringsFeaturesString)         = self.createStringFeatures(r2DumpFile)
+            namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
+            (importFeaturesOrdinal, importFeaturesType, 
+            importFeaturesName, importFeaturesLibName)          = self.createImportsFeatures(r2DumpFile)
 
             # Create the process object
             process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
             process.setRegistryFeatures(registryFeatures)
-            process.setSectionFeatures(sectionFeatures)
+            process.setSectionFeatures(sectionFeaturesNameSize, sectionFeaturesNamePerms)
             process.setFlagFeatures(flagFeatures)
             process.setEntryPointFeatures(entryPointFeatures)
-            process.setRelocationFeatures(relocationFeatures)
-            process.setStringFeatures(stringsFeatures)
+            process.setRelocationFeatures(relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, relocationFeaturesPaddr, relocationFeaturesIsIFunc)
+            process.setStringFeatures(stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString)
             process.setNamespaceFeatures(namespaceFeatures)
-            process.setImportFeatures(importFeatures)
+            process.setImportFeatures(importFeaturesOrdinal, importFeaturesType, importFeaturesName, importFeaturesLibName)
 
-            benignProcessList.append(process)
+            pprint.pprint(process.getProcessFeatureTable())
+
+            self.benignProcessList.append(process)
+            r2DumpFile.quit()
+
+        for dump in os.listdir(maliciousInputDirectory) :
+            dumpName = os.fsdecode(dump)
+            dumpPath = os.path.join(os.fsdecode(inputDirectory), dumpName)
+
+            print("-"*50)
+            print("Analysing File: " + str(dumpName))
+            print("-"*50)
+
+            process = Process("{}_benign".format(dumpName))
+            r2DumpFile = r2pipe.open(str(dumpPath))
+
+            # Collect all relevant feature sets for the process dump
+            headerBinFeatures, headerCoreFeatures               = self.createHeaderFeatures(r2DumpFile)
+            registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+            sectionFeaturesNameSize, sectionFeaturesNamePerms   = self.createSectionFeatures(r2DumpFile)
+            flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
+            entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
+            (relocationFeaturesName, relocationFeaturesType, 
+            relocationFeaturesVaddr, relocationFeaturesPaddr, 
+            relocationFeaturesIsIFunc)                          = self.createRelocationFeatures(r2DumpFile)
+            (stringsFeaturesOrdinal, stringsFeaturesSize, 
+            stringsFeaturesLength, stringsFeaturesSection, 
+            stringsFeaturesType, stringsFeaturesString)         = self.createStringFeatures(r2DumpFile)
+            namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
+            (importFeaturesOrdinal, importFeaturesType, 
+            importFeaturesName, importFeaturesLibName)          = self.createImportsFeatures(r2DumpFile)
+
+            # Create the process object
+            process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
+            process.setRegistryFeatures(registryFeatures)
+            process.setSectionFeatures(sectionFeaturesNameSize, sectionFeaturesNamePerms)
+            process.setFlagFeatures(flagFeatures)
+            process.setEntryPointFeatures(entryPointFeatures)
+            process.setRelocationFeatures(relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, relocationFeaturesPaddr, relocationFeaturesIsIFunc)
+            process.setStringFeatures(stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString)
+            process.setNamespaceFeatures(namespaceFeatures)
+            process.setImportFeatures(importFeaturesOrdinal, importFeaturesType, importFeaturesName, importFeaturesLibName)
+
+            pprint.pprint(process.getProcessFeatureTable())
+
+            self.maliciousProcessList.append(process)
             r2DumpFile.quit()
 
 
@@ -107,6 +162,7 @@ class MemoryFeatureExtractor :
         registryFeatures = pd.json_normalize(registryFeatures)
         return registryFeatures
     
+
     # Module and sections result in same data
     def createSectionFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iSj')
@@ -119,13 +175,15 @@ class MemoryFeatureExtractor :
             sectionFeaturesNamePerms.append({section.get('name'): section.get('perm')})
 
         sectionFeaturesNameSize = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNameSize))
-        sectionFeaturesNameSize.columns = ['size']
+        sectionFeaturesNameSize = sectionFeaturesNameSize.T
+        sectionFeaturesNameSize = sectionFeaturesNameSize.add_suffix("_size")
 
         sectionFeaturesNamePerms = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNamePerms))
-        sectionFeaturesNamePerms.columns = ['perms']
+        sectionFeaturesNamePerms = sectionFeaturesNamePerms.T
+        sectionFeaturesNamePerms = sectionFeaturesNamePerms.add_suffix("_perms")
 
-        sectionFeatures = sectionFeaturesNamePerms.join(sectionFeaturesNameSize).T
-        return sectionFeatures
+        return sectionFeaturesNameSize, sectionFeaturesNamePerms
+
 
     def createFlagFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('fsj')
@@ -135,8 +193,9 @@ class MemoryFeatureExtractor :
         flagFeatures = flagFeatures.drop(['selected'], axis=1)
         flagFeatures = flagFeatures.set_index('name')
 
-        flagFeatures = flagFeatures.T.reset_index(drop=True)
+        flagFeatures = flagFeatures.T.reset_index()
         return flagFeatures
+
 
     def createEntryPointFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('dbtj')
@@ -145,19 +204,41 @@ class MemoryFeatureExtractor :
         entryPointFeatures = pd.DataFrame(dmpInfo)
         return entryPointFeatures
 
+
     def createRelocationFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('irj')
         dmpInfo = json.loads(dmpInfo)
 
         relocationFeatures = pd.DataFrame(dmpInfo)
-        return relocationFeatures
+        relocationFeatures = relocationFeatures.drop(['demname'], axis=1).T
+
+        relocationFeaturesName    = relocationFeatures.loc[['name']].add_prefix("relocation_name_").reset_index(drop=True)
+        relocationFeaturesType    = relocationFeatures.loc[['type']].add_prefix("relocation_type_").reset_index(drop=True)
+        relocationFeaturesVaddr   = relocationFeatures.loc[['vaddr']].add_prefix("relocation_vaddr_").reset_index(drop=True)
+        relocationFeaturesPaddr   = relocationFeatures.loc[['paddr']].add_prefix("relocation_paddr_").reset_index(drop=True)
+        relocationFeaturesIsIFunc = relocationFeatures.loc[['is_ifunc']].add_prefix("relocation_isifunc_").reset_index(drop=True)
+
+        return (relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, 
+                relocationFeaturesPaddr, relocationFeaturesIsIFunc)
+
 
     def createStringFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('izj')
         dmpInfo = json.loads(dmpInfo)
 
         stringsFeatures = pd.DataFrame(dmpInfo).drop(['blocks', 'paddr', 'vaddr'], axis=1)
-        return stringsFeatures
+        stringsFeatures = stringsFeatures[stringsFeatures['size'] > 50].reset_index(drop=True).T
+
+        stringsFeaturesOrdinal = stringsFeatures.loc[['ordinal']].add_prefix("string_ordinal_").reset_index(drop=True)
+        stringsFeaturesSize    = stringsFeatures.loc[['size']].add_prefix("string_size_").reset_index(drop=True)
+        stringsFeaturesLength  = stringsFeatures.loc[['length']].add_prefix("string_length_").reset_index(drop=True)
+        stringsFeaturesSection = stringsFeatures.loc[['section']].add_prefix("string_section_").reset_index(drop=True)
+        stringsFeaturesType    = stringsFeatures.loc[['type']].add_prefix("string_type_").reset_index(drop=True)
+        stringsFeaturesString  = stringsFeatures.loc[['string']].add_prefix("string_string_").reset_index(drop=True)
+
+        return (stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, 
+                stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString)
+
 
     def createNamespaceSyscallFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('kj syscall/*')
@@ -165,11 +246,22 @@ class MemoryFeatureExtractor :
 
         # Key short for "analyse"
         namespaceFeatures = pd.DataFrame(dmpInfo['anal']).T.reset_index(drop=True)
+        namespaceFeatures = namespaceFeatures.add_prefix("syscall_")
+        namespaceFeatures = namespaceFeatures.iloc[: , 1:]
+
         return namespaceFeatures
+
 
     def createImportsFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('iij')
         dmpInfo = json.loads(dmpInfo)
 
-        importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1)
-        return importFeatures
+        importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1).T
+
+        importFeaturesOrdinal = importFeatures.loc[['ordinal']].add_prefix("import_ordinal_").reset_index(drop=True)
+        importFeaturesType    = importFeatures.loc[['type']].add_prefix("string_type_").reset_index(drop=True)
+        importFeaturesName    = importFeatures.loc[['name']].add_prefix("string_name_").reset_index(drop=True)
+        importFeaturesLibName = importFeatures.loc[['libname']].add_prefix("string_libname_").reset_index(drop=True)
+
+        return (importFeaturesOrdinal, importFeaturesType, importFeaturesName, 
+                importFeaturesLibName)
