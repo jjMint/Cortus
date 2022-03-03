@@ -30,40 +30,40 @@ class Process :
 #--------------------------------------------------------------------------------------------
 # Process Setters
 #--------------------------------------------------------------------------------------------
-    def setHeaderFeatures(self, headerBinFeatures, headerCoreFeatures) :
-        self.headerFeatures = pd.concat([headerBinFeatures, headerCoreFeatures], axis=1)
+    def setHeaderFeatures(self, headerFeatures) :
+        self.headerFeatures = headerFeatures
         # pprint.pprint(self.headerFeatures)
         
     def setRegistryFeatures(self, registryFeatures) :
-        self.registryFeatures = pd.concat([registryFeatures], axis=1)
+        self.registryFeatures = registryFeatures
         # pprint.pprint(self.registryFeatures)
 
     def setFlagFeatures(self, flagFeatures) :
-        self.flagFeatures = pd.concat([flagFeatures], axis=1)
+        self.flagFeatures = flagFeatures
         # pprint.pprint(self.flagFeatures)
 
-    def setSectionFeatures(self, sectionFeaturesNameSize, sectionFeaturesNamePerms) :
-        self.sectionFeatures = pd.concat([sectionFeaturesNameSize, sectionFeaturesNamePerms], axis=1)
+    def setSectionFeatures(self, sectionFeatures) :
+        self.sectionFeatures = sectionFeatures
         # pprint.pprint(self.sectionFeatures)
         
     def setEntryPointFeatures(self, entryPointFeatures) :
-        self.entryPointFeatures = pd.concat([entryPointFeatures], axis=1)
+        self.entryPointFeatures = entryPointFeatures
         # pprint.pprint(self.entryPointFeatures)
         
-    def setRelocationFeatures(self, relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, relocationFeaturesPaddr, relocationFeaturesIsIFunc) :
-        self.relocationFeatures = pd.concat([relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, relocationFeaturesPaddr, relocationFeaturesIsIFunc], axis=1)
+    def setRelocationFeatures(self, relocationFeatures) :
+        self.relocationFeatures = relocationFeatures
         # pprint.pprint(self.relocationFeatures)
 
-    def setStringFeatures(self, stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString) :
-        self.stringsFeatures = pd.concat([stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString], axis=1)
+    def setStringFeatures(self, stringsFeatures) :
+        self.stringsFeatures = stringsFeatures
         # pprint.pprint(self.stringsFeatures)
 
     def setNamespaceFeatures(self, namespaceFeatures) :
-        self.namespaceFeatures = pd.concat([namespaceFeatures], axis=1)
+        self.namespaceFeatures = namespaceFeatures
         # pprint.pprint(self.namespaceFeatures)
 
-    def setImportFeatures(self, importFeaturesOrdinal, importFeaturesType, importFeaturesName, importFeaturesLibName) :
-        self.importFeatures = pd.concat([importFeaturesOrdinal, importFeaturesType, importFeaturesName, importFeaturesLibName], axis=1)
+    def setImportFeatures(self, importFeatures) :
+        self.importFeatures = importFeatures
         # pprint.pprint(self.importFeatures)
 
 #--------------------------------------------------------------------------------------------
