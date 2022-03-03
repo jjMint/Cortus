@@ -38,7 +38,7 @@ class MemoryFeatureExtractor :
     benignProcessList     = []
     maliciousProcessList  = []
 
-    def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder):
+    def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder) :
         self.benignInputFolder       = benignInputFolder
         self.benignOutputFolder      = benignOutputFolder
         self.maliciousInputFolder    = benignInputFolder
@@ -46,19 +46,17 @@ class MemoryFeatureExtractor :
 
         self.extractor(benignInputFolder, maliciousInputFolder)
 
-    def extractor(self, benignInputFolder, maliciousInputFolder) :
-        benignInputDirectory     = os.fsencode(benignInputFolder)
-        maliciousInputDirectory  = os.fsencode(maliciousInputFolder)
+    def createProcessList(self, inputFolder, processType) :
 
 
         print("-"*50)
-        print("Beginning Feature Extraction Process")
-        print("Memory Dumps to analyze: " + str(len(os.listdir(benignInputDirectory))))
+        print("Beginning {} Feature Extraction Process".format(processType))
+        print("Memory Dumps to analyze: " + str(len(os.listdir(inputFolder))))
         print("-"*50)
 
-        for dump in os.listdir(benignInputDirectory) :
+        for dump in os.listdir(inputFolder) :
             dumpName = os.fsdecode(dump)
-            dumpPath = os.path.join(os.fsdecode(benignInputDirectory), dumpName)
+            dumpPath = os.path.join(os.fsdecode(inputFolder), dumpName)
 
             print("-"*50)
             print("Analysing File: " + str(dumpName))
@@ -75,7 +73,7 @@ class MemoryFeatureExtractor :
             entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
             relocationFeatures                                  = self.createRelocationFeatures(r2DumpFile)
             stringsFeatures                                     = self.createStringFeatures(r2DumpFile)
-            namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
+            # namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
             importFeatures                                      = self.createImportsFeatures(r2DumpFile)
 
             # Create the process object
@@ -86,57 +84,25 @@ class MemoryFeatureExtractor :
             process.setEntryPointFeatures(entryPointFeatures)
             process.setRelocationFeatures(relocationFeatures)
             process.setStringFeatures(stringsFeatures)
-            process.setNamespaceFeatures(namespaceFeatures)
+            # process.setNamespaceFeatures(namespaceFeatures)
             process.setImportFeatures(importFeatures)
 
             pprint.pprint(process.getProcessFeatureTable())
 
-            self.benignProcessList.append(process)
+            if (processType == "benign"):
+                self.benignProcessList.append(process)
+            else :
+                self.maliciousProcessList.append(process)
+    
             r2DumpFile.quit()
 
-        # for dump in os.listdir(maliciousInputDirectory) :
-        #     dumpName = os.fsdecode(dump)
-        #     dumpPath = os.path.join(os.fsdecode(inputDirectory), dumpName)
 
-        #     print("-"*50)
-        #     print("Analysing File: " + str(dumpName))
-        #     print("-"*50)
+    def extractor(self, benignInputFolder, maliciousInputFolder) :
+        benignInputDirectory     = os.fsencode(benignInputFolder)
+        maliciousInputDirectory  = os.fsencode(maliciousInputFolder)
 
-        #     process = Process("{}_benign".format(dumpName))
-        #     r2DumpFile = r2pipe.open(str(dumpPath))
-
-        #     # Collect all relevant feature sets for the process dump
-        #     headerBinFeatures, headerCoreFeatures               = self.createHeaderFeatures(r2DumpFile)
-        #     registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
-        #     sectionFeaturesNameSize, sectionFeaturesNamePerms   = self.createSectionFeatures(r2DumpFile)
-        #     flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
-        #     entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
-        #     (relocationFeaturesName, relocationFeaturesType, 
-        #     relocationFeaturesVaddr, relocationFeaturesPaddr, 
-        #     relocationFeaturesIsIFunc)                          = self.createRelocationFeatures(r2DumpFile)
-        #     (stringsFeaturesOrdinal, stringsFeaturesSize, 
-        #     stringsFeaturesLength, stringsFeaturesSection, 
-        #     stringsFeaturesType, stringsFeaturesString)         = self.createStringFeatures(r2DumpFile)
-        #     namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
-        #     (importFeaturesOrdinal, importFeaturesType, 
-        #     importFeaturesName, importFeaturesLibName)          = self.createImportsFeatures(r2DumpFile)
-
-        #     # Create the process object
-        #     process.setHeaderFeatures(headerBinFeatures, headerCoreFeatures)
-        #     process.setRegistryFeatures(registryFeatures)
-        #     process.setSectionFeatures(sectionFeaturesNameSize, sectionFeaturesNamePerms)
-        #     process.setFlagFeatures(flagFeatures)
-        #     process.setEntryPointFeatures(entryPointFeatures)
-        #     process.setRelocationFeatures(relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, relocationFeaturesPaddr, relocationFeaturesIsIFunc)
-        #     process.setStringFeatures(stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString)
-        #     process.setNamespaceFeatures(namespaceFeatures)
-        #     process.setImportFeatures(importFeaturesOrdinal, importFeaturesType, importFeaturesName, importFeaturesLibName)
-
-        #     pprint.pprint(process.getProcessFeatureTable())
-
-        #     self.maliciousProcessList.append(process)
-        #     r2DumpFile.quit()
-
+        self.createProcessList(benignInputDirectory, 'benign')
+        self.createProcessList(maliciousInputDirectory, 'malicious')
 
     def createHeaderFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('ij')
@@ -209,20 +175,10 @@ class MemoryFeatureExtractor :
 
         relocationFeatures = pd.DataFrame(dmpInfo)
         relocationFeatures = relocationFeatures.drop(['demname'], axis=1).T
-
-        relocationFeaturesName    = relocationFeatures.loc[['name']].add_prefix("relocation_name_").reset_index(drop=True)
-
         relocationFeaturesCount   = pd.DataFrame({'relocationCount':len(pd.DataFrame(dmpInfo).index)}, index=[0])
-        print(relocationFeaturesCount)
-        print(pd.DataFrame(dmpInfo)['name'].value_counts())
+        relocationValueCounts = relocationFeatures.loc['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
-        relocationFeaturesType    = relocationFeatures.loc[['type']].add_prefix("relocation_type_").reset_index(drop=True)
-        relocationFeaturesVaddr   = relocationFeatures.loc[['vaddr']].add_prefix("relocation_vaddr_").reset_index(drop=True)
-        relocationFeaturesPaddr   = relocationFeatures.loc[['paddr']].add_prefix("relocation_paddr_").reset_index(drop=True)
-        relocationFeaturesIsIFunc = relocationFeatures.loc[['is_ifunc']].add_prefix("relocation_isifunc_").reset_index(drop=True)
-
-        relocationFeatures = pd.concat([relocationFeaturesName, relocationFeaturesType, relocationFeaturesVaddr, 
-                                        relocationFeaturesPaddr, relocationFeaturesIsIFunc], axis=1)
+        relocationFeatures = pd.concat([relocationValueCounts, relocationFeaturesCount], axis=1)
         return relocationFeatures
 
 
@@ -233,37 +189,32 @@ class MemoryFeatureExtractor :
         stringsFeatures = pd.DataFrame(dmpInfo).drop(['blocks', 'paddr', 'vaddr'], axis=1)
 
         stringsFeaturesCount = pd.DataFrame({'stringCount':len(stringsFeatures.index)}, index=[0])
-        print(stringsFeaturesCount)
-
 
         stringsFeatures = stringsFeatures[stringsFeatures['size'] > 50].reset_index(drop=True)
-        print(stringsFeatures['string'].value_counts())
+        stringsValueCount = stringsFeatures['string'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        stringsSectionValueCount = stringsFeatures['section'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
-        stringsFeatures = stringsFeatures[stringsFeatures['size'] > 50].reset_index(drop=True).T
-        stringsFeaturesOrdinal = stringsFeatures.loc[['ordinal']].add_prefix("string_ordinal_").reset_index(drop=True)
-        stringsFeaturesSize    = stringsFeatures.loc[['size']].add_prefix("string_size_").reset_index(drop=True)
-        stringsFeaturesLength  = stringsFeatures.loc[['length']].add_prefix("string_length_").reset_index(drop=True)
-        stringsFeaturesSection = stringsFeatures.loc[['section']].add_prefix("string_section_").reset_index(drop=True)
-        stringsFeaturesType    = stringsFeatures.loc[['type']].add_prefix("string_type_").reset_index(drop=True)
-        stringsFeaturesString  = stringsFeatures.loc[['string']].add_prefix("string_string_").reset_index(drop=True)
-
-        stringsFeatures = pd.concat([stringsFeaturesOrdinal, stringsFeaturesSize, stringsFeaturesLength, 
-                                    stringsFeaturesSection, stringsFeaturesType, stringsFeaturesString], axis=1)
+        stringsFeatures = pd.concat([stringsValueCount, stringsSectionValueCount, stringsTypeValueCount, stringsFeaturesCount], axis=1)
         return stringsFeatures
 
 
-    def createNamespaceSyscallFeatures(self, r2DumpFile) :
-        dmpInfo = r2DumpFile.cmd('kj syscall/*')
-        dmpInfo = json.loads(dmpInfo)
-        # Key short for "analyse"
-        namespaceFeatures = pd.DataFrame(dmpInfo['anal']).T.reset_index(drop=True)
+    # def createNamespaceSyscallFeatures(self, r2DumpFile) :
+    #     dmpInfo = r2DumpFile.cmd('kj syscall/*')
+    #     dmpInfo = json.loads(dmpInfo)
+    #     # Key short for "analyse"
+    #     namespaceFeatures = pd.DataFrame(dmpInfo['anal']).T.reset_index(drop=True)
 
-        namespaceFeaturesCount = pd.DataFrame({'syscallCount':len(pd.DataFrame(dmpInfo['anal']).reset_index(drop=True).index)}, index=[0])
-        print(namespaceFeaturesCount)
+    #     namespaceFeaturesCount = pd.DataFrame({'syscallCount':len(pd.DataFrame(dmpInfo['anal']).reset_index(drop=True).index)}, index=[0])
 
-        namespaceFeatures = namespaceFeatures.add_prefix("syscall_")
-        namespaceFeatures = namespaceFeatures.iloc[: , 1:]
-        return namespaceFeatures
+    #     namespaceFeatures = namespaceFeatures.iloc[: , 1:]
+    #     print(namespaceFeatures)
+    #     namespaceFeaturesValueCount = namespaceFeatures.iloc[0].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+    #     print(namespaceFeaturesValueCount)
+    #     namespaceFeatures = namespaceFeatures.iloc[: , 1:]
+
+    #     namespaceFeatures = pd.concat([namespaceFeaturesCount], axis=1)
+    #     return namespaceFeatures
 
 
     def createImportsFeatures(self, r2DumpFile) :
@@ -273,16 +224,8 @@ class MemoryFeatureExtractor :
         importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1)
 
         importFeaturesCount = pd.DataFrame({'importCount':len(importFeatures.index)}, index=[0])
-        print(importFeaturesCount)
+        importFeaturesNameValueCount = importFeatures['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        importFeaturesLibNameValueCount = importFeatures['libname'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
-        print(importFeatures['name'].value_counts())
-        print(importFeatures['libname'].value_counts())
-
-        importFeaturesOrdinal = importFeatures.T.loc[['ordinal']].add_prefix("import_ordinal_").reset_index(drop=True)
-        importFeaturesType    = importFeatures.T.loc[['type']].add_prefix("string_type_").reset_index(drop=True)
-        importFeaturesName    = importFeatures.T.loc[['name']].add_prefix("string_name_").reset_index(drop=True)
-        importFeaturesLibName = importFeatures.T.loc[['libname']].add_prefix("string_libname_").reset_index(drop=True)
-
-        importFeatures = pd.concat([importFeaturesOrdinal, importFeaturesType, importFeaturesName, 
-                                    importFeaturesLibName], axis=1)
+        importFeatures = pd.concat([importFeaturesNameValueCount, importFeaturesLibNameValueCount, importFeaturesCount], axis=1)
         return importFeatures
