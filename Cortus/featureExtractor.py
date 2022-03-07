@@ -64,9 +64,9 @@ class MemoryFeatureExtractor :
             dumpName = os.fsdecode(dump)
             dumpPath = os.path.join(os.fsdecode(inputFolder), dumpName)
 
-            print("-"*50)
+            # print("-"*50)
             print("Analysing File: " + str(dumpName))
-            print("-"*50)
+            # print("-"*50)
 
             process = Process("{}_benign".format(dumpName), processType)
             r2DumpFile = r2pipe.open(str(dumpPath))
@@ -92,8 +92,6 @@ class MemoryFeatureExtractor :
             process.setStringFeatures(stringsFeatures)
             # process.setNamespaceFeatures(namespaceFeatures)
             process.setImportFeatures(importFeatures)
-
-            pprint.pprint(process.getProcessFeatureTable())
 
             if (processType == "benign"):
                 self.benignProcessList.append(process)

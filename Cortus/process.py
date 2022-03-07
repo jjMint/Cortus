@@ -75,8 +75,6 @@ class Process :
 
         processDetails = pd.DataFrame({'processName': [self.processName], 'processType': [self.processType]})
 
-        print(processDetails)
-
         processFeatures = pd.concat([processDetails, self.headerFeatures, self.registryFeatures, self.flagFeatures, 
                                     self.sectionFeatures, self.entryPointFeatures, self.relocationFeatures, 
                                     self.stringsFeatures, self.namespaceFeatures, self.importFeatures], axis=1)        
