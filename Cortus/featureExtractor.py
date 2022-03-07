@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import pprint
 import r2pipe
+import sys
 
 from process import Process
 from sklearn.feature_extraction import DictVectorizer
@@ -24,6 +25,12 @@ def flattenDataFrame(nestedDataFrame) :
     flattenedDataFrame = flattenedDataFrame.T
 
     return flattenedDataFrame
+
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
 
 
 # --------------------------------------------------------------------------------------------
@@ -44,15 +51,14 @@ class MemoryFeatureExtractor :
         self.maliciousInputFolder    = benignInputFolder
         self.maliciousOutputFolder   = benignOutputFolder
 
-        self.extractor(benignInputFolder, maliciousInputFolder)
-
-    def createProcessList(self, inputFolder, processType) :
+        self.extractor(benignInputFolder, benignOutputFolder, maliciousInputFolder, maliciousOutputFolder)
 
 
-        print("-"*50)
-        print("Beginning {} Feature Extraction Process".format(processType))
-        print("Memory Dumps to analyze: " + str(len(os.listdir(inputFolder))))
-        print("-"*50)
+    def createProcessList(self, inputFolder, outputFolder, processType) :
+        # print("-"*50)
+        print("Begining {} Feature Extraction Process".format(processType))
+        # print("Memory Dumps to analyze: " + str(len(os.listdir(inputFolder))))
+        # print("-"*50)
 
         for dump in os.listdir(inputFolder) :
             dumpName = os.fsdecode(dump)
@@ -62,7 +68,7 @@ class MemoryFeatureExtractor :
             print("Analysing File: " + str(dumpName))
             print("-"*50)
 
-            process = Process("{}_benign".format(dumpName))
+            process = Process("{}_benign".format(dumpName), processType)
             r2DumpFile = r2pipe.open(str(dumpPath))
 
             # Collect all relevant feature sets for the process dump
@@ -93,16 +99,20 @@ class MemoryFeatureExtractor :
                 self.benignProcessList.append(process)
             else :
                 self.maliciousProcessList.append(process)
-    
+
+            process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
             r2DumpFile.quit()
 
 
-    def extractor(self, benignInputFolder, maliciousInputFolder) :
+    def extractor(self, benignInputFolder, benignOutputDirectory, maliciousInputFolder, maliciousOutputDirectory) :
         benignInputDirectory     = os.fsencode(benignInputFolder)
         maliciousInputDirectory  = os.fsencode(maliciousInputFolder)
+        benignOutputDirectory    = os.fsencode(benignOutputDirectory)
+        maliciousOutputDirectory = os.fsencode(maliciousOutputDirectory)
 
-        self.createProcessList(benignInputDirectory, 'benign')
-        self.createProcessList(maliciousInputDirectory, 'malicious')
+        self.createProcessList(benignInputDirectory, benignOutputDirectory, 'benign')
+        self.createProcessList(maliciousInputDirectory, maliciousOutputDirectory, 'malicious')
+
 
     def createHeaderFeatures(self, r2DumpFile) :
         dmpInfo = r2DumpFile.cmd('ij')

@@ -14,6 +14,7 @@ import pprint
 # Class that handles the collation and storage of a dump / processes features
 class Process :
     processName         = None
+    processType         = None
     headerFeatures      = None
     registryFeatures    = None
     flagFeatures        = None
@@ -24,8 +25,9 @@ class Process :
     namespaceFeatures   = None
     importFeatures      = None
 
-    def __init__(self, processName):
+    def __init__(self, processName, processType):
         self.processName = processName
+        self.processType = processType
 
 #--------------------------------------------------------------------------------------------
 # Process Setters
@@ -71,7 +73,11 @@ class Process :
 #-------------------------------------------------------------------------------------------- 
     def getProcessFeatureTable(self) :
 
-        processFeatures = pd.concat([self.headerFeatures, self.registryFeatures, self.flagFeatures, 
+        processDetails = pd.DataFrame({'processName': [self.processName], 'processType': [self.processType]})
+
+        print(processDetails)
+
+        processFeatures = pd.concat([processDetails, self.headerFeatures, self.registryFeatures, self.flagFeatures, 
                                     self.sectionFeatures, self.entryPointFeatures, self.relocationFeatures, 
                                     self.stringsFeatures, self.namespaceFeatures, self.importFeatures], axis=1)        
 

@@ -6,7 +6,7 @@
 # Focuses on the creation of usable and quantifiable data derived through the use of radare2 on process memory dumps
 # ------------------------------------------------------------------------------------------------------------------
 
-import getopt
+import argparse
 import json
 import pandas as pd
 import pprint
@@ -38,26 +38,14 @@ def main(argv) :
     benignOutputFolder     = None
     maliciousOutputFolder  = None
 
-    try :
-        opts, args = getopt.getopt(argv, "hi:o", ["iBenignFolder=", "oBenignFolder=", "iMaliciousFolder=", "oMaliciousFolder="])
-    except getopt.GetoptError :
-        print("Please provide and input and ouput folder location: featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
-        sys.exit()
-    
-    for opt, arg in opts:
-        if opt == '-h':
-            print("featureExtractor.py -i <inputBenignFolder> -o <outputBenignFolder> -b <inputMaliciousFolder> -g <outputMaliciousFolder>")
-            sys.exit()
-        elif opt in ("-i", "--iBenignFolder"):
-            benignInputFolder = arg
-        elif opt in ("-o", "--oBenignFolder"):
-            benignOutputFolder = arg
-        elif opt in ("-b", "--iMaliciousFolder"):
-            maliciousInputFolder = arg
-        elif opt in ("-g", "--oMaliciousFolder"):
-            maliciousOutputFolder = arg
+    parser = argparse.ArgumentParser(description='Create a number of features from provided process memory dumps')
+    parser.add_argument('--iBenFolder', dest='inputBenignFolder', help='The input folder for benign process dumps')
+    parser.add_argument('--oBenFolder', dest='benignOutputFolder', help='The input folder for benign process dumps')
+    parser.add_argument('--iMalFolder', dest='maliciousInputFolder', help='The input folder for benign process dumps')
+    parser.add_argument('--oMalFolder', dest='maliciousOutputFolder', help='The input folder for benign process dumps')
 
-    featureExtractor = MemoryFeatureExtractor(benignInputFolder, benignOutputFolder, maliciousInputFolder, maliciousOutputFolder)
+    args = parser.parse_args()
+    featureExtractor = MemoryFeatureExtractor(args.inputBenignFolder, args.benignOutputFolder, args.maliciousInputFolder, args.maliciousOutputFolder)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
