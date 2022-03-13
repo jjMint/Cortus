@@ -6,6 +6,7 @@
 # ------------------------------------------------------------------------------------------------------------------
 
 import json
+import logging
 import os
 import pandas as pd
 import pprint
@@ -13,8 +14,8 @@ import r2pipe
 import sys
 
 from process import Process
-from sklearn.feature_extraction import DictVectorizer
 
+logging.basicConfig(level=logging.INFO)
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -42,8 +43,7 @@ class MemoryFeatureExtractor :
     maliciousInputFolder    = None
     benignOutputFolder      = None
     maliciousOutputFolder   = None
-    benignProcessList     = []
-    maliciousProcessList  = []
+
 
     def __init__(self, benignInputFolder, maliciousInputFolder, benignOutputFolder, maliciousOutputFolder) :
         self.benignInputFolder       = benignInputFolder
@@ -55,55 +55,52 @@ class MemoryFeatureExtractor :
 
 
     def createProcessList(self, inputFolder, outputFolder, processType) :
-        # print("-"*50)
-        print("Begining {} Feature Extraction Process".format(processType))
-        # print("Memory Dumps to analyze: " + str(len(os.listdir(inputFolder))))
-        # print("-"*50)
+        logging.info("-"*50)
+        logging.info("Begining {} Feature Extraction Process".format(processType))
+        logging.info("Memory Dumps to analyze: " + str(len(os.listdir(inputFolder))))
+        logging.info("-"*50)
 
         for dump in os.listdir(inputFolder) :
-            try:
-                dumpName = os.fsdecode(dump)
-                dumpPath = os.path.join(os.fsdecode(inputFolder), dumpName)
+            dumpName = os.fsdecode(dump)
+            dumpPath = os.path.join(os.fsdecode(inputFolder), dumpName)
+            logging.info("Analysing File: " + str(dumpName))
 
-                # print("-"*50)
-                print("Analysing File: " + str(dumpName))
-                # print("-"*50)
-
-                process = Process("{}_benign".format(dumpName), processType)
+            process = Process("{}_{}".format(dumpName, processType), processType)
+            try :
                 r2DumpFile = r2pipe.open(str(dumpPath))
+            except :
+                logging.error("Failed to extract features from file: {}".format(dumpName))
 
-                # Collect all relevant feature sets for the process dump
-                headerFeatures                                      = self.createHeaderFeatures(r2DumpFile)
-                registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
-                sectionFeatures                                     = self.createSectionFeatures(r2DumpFile)
-                flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
-                entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
-                relocationFeatures                                  = self.createRelocationFeatures(r2DumpFile)
-                stringsFeatures                                     = self.createStringFeatures(r2DumpFile)
-                # namespaceFeatures                                   = self.createNamespaceSyscallFeatures(r2DumpFile)
-                importFeatures                                      = self.createImportsFeatures(r2DumpFile)
+            # Collect all relevant feature sets for the process dump
+            # -------------------------------------------------------------------------------------
+            # Due to the nature of the memory dumps, its entirely possible that the dump is missing
+            # components we are trying to extract, as such we need to "try", during testing only the header results in this
 
-                # Create the process object
-                process.setHeaderFeatures(headerFeatures)
-                process.setRegistryFeatures(registryFeatures)
-                process.setSectionFeatures(sectionFeatures)
-                process.setFlagFeatures(flagFeatures)
-                process.setEntryPointFeatures(entryPointFeatures)
-                process.setRelocationFeatures(relocationFeatures)
-                process.setStringFeatures(stringsFeatures)
-                # process.setNamespaceFeatures(namespaceFeatures)
-                process.setImportFeatures(importFeatures)
-
-                if (processType == "benign"):
-                    self.benignProcessList.append(process)
-                else :
-                    self.maliciousProcessList.append(process)
-
-                process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
-                r2DumpFile.quit()
+            try :
+                headerFeatures                                  = self.createHeaderFeatures(r2DumpFile)
             except:
-                print("Failed to extract features from file: {}".format(dumpName))
-                r2DumpFile.quit()
+                logging.warning("Failed to extract header features")
+                continue
+            registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+            sectionFeatures                                     = self.createSectionFeatures(r2DumpFile)
+            flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
+            entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
+            relocationFeatures                                  = self.createRelocationFeatures(r2DumpFile)
+            stringsFeatures                                     = self.createStringFeatures(r2DumpFile)
+            importFeatures                                      = self.createImportsFeatures(r2DumpFile)
+
+            # Create the process object
+            process.setHeaderFeatures(headerFeatures)
+            process.setRegistryFeatures(registryFeatures)
+            process.setSectionFeatures(sectionFeatures)
+            process.setFlagFeatures(flagFeatures)
+            process.setEntryPointFeatures(entryPointFeatures)
+            process.setRelocationFeatures(relocationFeatures)
+            process.setStringFeatures(stringsFeatures)
+            process.setImportFeatures(importFeatures)
+
+            process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
+            r2DumpFile.quit()
 
 
     def extractor(self, benignInputFolder, benignOutputDirectory, maliciousInputFolder, maliciousOutputDirectory) :
@@ -209,24 +206,6 @@ class MemoryFeatureExtractor :
 
         stringsFeatures = pd.concat([stringsValueCount, stringsSectionValueCount, stringsTypeValueCount, stringsFeaturesCount], axis=1)
         return stringsFeatures
-
-
-    # def createNamespaceSyscallFeatures(self, r2DumpFile) :
-    #     dmpInfo = r2DumpFile.cmd('kj syscall/*')
-    #     dmpInfo = json.loads(dmpInfo)
-    #     # Key short for "analyse"
-    #     namespaceFeatures = pd.DataFrame(dmpInfo['anal']).T.reset_index(drop=True)
-
-    #     namespaceFeaturesCount = pd.DataFrame({'syscallCount':len(pd.DataFrame(dmpInfo['anal']).reset_index(drop=True).index)}, index=[0])
-
-    #     namespaceFeatures = namespaceFeatures.iloc[: , 1:]
-    #     print(namespaceFeatures)
-    #     namespaceFeaturesValueCount = namespaceFeatures.iloc[0].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
-    #     print(namespaceFeaturesValueCount)
-    #     namespaceFeatures = namespaceFeatures.iloc[: , 1:]
-
-    #     namespaceFeatures = pd.concat([namespaceFeaturesCount], axis=1)
-    #     return namespaceFeatures
 
 
     def createImportsFeatures(self, r2DumpFile) :

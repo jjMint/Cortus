@@ -5,8 +5,11 @@
 # Process Memory Feature Extractor class that defines the process of extracting features using radare2
 # ------------------------------------------------------------------------------------------------------------------
 
+import logging
 import pandas as pd
 import pprint
+
+logging.basicConfig(level=logging.INFO)
 
 # --------------------------------------------------------------------------------------------
 # // Process Object
@@ -34,39 +37,39 @@ class Process :
 #--------------------------------------------------------------------------------------------
     def setHeaderFeatures(self, headerFeatures) :
         self.headerFeatures = headerFeatures
-        # pprint.pprint(self.headerFeatures)
+        logging.debug(self.headerFeatures)
         
     def setRegistryFeatures(self, registryFeatures) :
         self.registryFeatures = registryFeatures
-        # pprint.pprint(self.registryFeatures)
+        logging.debug(self.headerFeatures)
 
     def setFlagFeatures(self, flagFeatures) :
         self.flagFeatures = flagFeatures
-        # pprint.pprint(self.flagFeatures)
+        logging.debug(self.headerFeatures)
 
     def setSectionFeatures(self, sectionFeatures) :
         self.sectionFeatures = sectionFeatures
-        # pprint.pprint(self.sectionFeatures)
+        logging.debug(self.headerFeatures)
         
     def setEntryPointFeatures(self, entryPointFeatures) :
         self.entryPointFeatures = entryPointFeatures
-        # pprint.pprint(self.entryPointFeatures)
+        logging.debug(self.headerFeatures)
         
     def setRelocationFeatures(self, relocationFeatures) :
         self.relocationFeatures = relocationFeatures
-        # pprint.pprint(self.relocationFeatures)
+        logging.debug(self.headerFeatures)
 
     def setStringFeatures(self, stringsFeatures) :
         self.stringsFeatures = stringsFeatures
-        # pprint.pprint(self.stringsFeatures)
+        logging.debug(self.headerFeatures)
 
     def setNamespaceFeatures(self, namespaceFeatures) :
         self.namespaceFeatures = namespaceFeatures
-        # pprint.pprint(self.namespaceFeatures)
+        logging.debug(self.headerFeatures)
 
     def setImportFeatures(self, importFeatures) :
         self.importFeatures = importFeatures
-        # pprint.pprint(self.importFeatures)
+        logging.debug(self.headerFeatures)
 
 #--------------------------------------------------------------------------------------------
 # Collater functions

@@ -19,19 +19,25 @@ from featureExtractor import MemoryFeatureExtractor
 # // Utility Functions
 # Collection of functions that peform tasks generalised across the feature processes
 # --------------------------------------------------------------------------------------------
+def flattenDataFrame(nestedDataFrame) :
+    flattenedDataFrame = nestedDataFrame.apply(lambda x: pd.Series(x.dropna().to_numpy())).iloc[[0]]
+    flattenedDataFrame = flattenedDataFrame.T
+
+    return flattenedDataFrame
+
+
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
 
 # --------------------------------------------------------------------------------------------
-# // Process Feature Collator
+# // Feature Extraction Process Starter
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with collation of features
-class featureCollator :
-    outputFolder   = None
-
-    def __init__(self, inputFolder, outputFolder):
-        self.inputFolder    = inputFolder
-        self.outputFolder   = outputFolder
-
-
 def main(argv) :
     benignInputFolder      = None
     maliciousInputFolder   = None
@@ -49,5 +55,3 @@ def main(argv) :
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-
-
