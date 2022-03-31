@@ -15,7 +15,6 @@ from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 
-
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
 # Collection of functions that peform tasks generalised across the feature processes
@@ -89,8 +88,8 @@ class DataLoader :
         
 def main(argv) :
     parser = argparse.ArgumentParser(description='Create a complete dataset based on input files')
-    parser.add_argument('--iFolder', dest='inputFolder', help='The input folder for benign process dumps')
-    parser.add_argument('--oFolder', dest='outputFolder', help='The input folder for benign process dumps')
+    parser.add_argument('--iFolder', dest='inputFolder', help='The input folder for process dumps')
+    parser.add_argument('--oFolder', dest='outputFolder', help='The input folder for process dumps')
 
     args = parser.parse_args()
 

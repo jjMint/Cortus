@@ -4,8 +4,7 @@
 # Author: Joshua Keegan
 # Process Memory unsupervised learning model to help determine points of interest
 # ------------------------------------------------------------------------------------------------------------------
-
-
+import pandas as pd
 
 
 def main(argv) :
