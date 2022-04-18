@@ -89,6 +89,7 @@ class MemoryFeatureExtractor :
             relocationFeatures                                  = self.createRelocationFeatures(r2DumpFile)
             stringsFeatures                                     = self.createStringFeatures(r2DumpFile)
             importFeatures                                      = self.createImportsFeatures(r2DumpFile)
+            slackFeatures                                       = self.createSlackFeatures(r2DumpFile)
 
             # Create the process object
             process.setHeaderFeatures(headerFeatures)
@@ -99,6 +100,7 @@ class MemoryFeatureExtractor :
             process.setRelocationFeatures(relocationFeatures)
             process.setStringFeatures(stringsFeatures)
             process.setImportFeatures(importFeatures)
+            process.setSlackFeatures(slackFeatures)
 
             process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
             r2DumpFile.quit()
@@ -225,3 +227,14 @@ class MemoryFeatureExtractor :
 
         importFeatures = pd.concat([importFeaturesNameValueCount, importFeaturesLibNameValueCount, importFeaturesCount], axis=1)
         return importFeatures
+
+    
+    def createSlackFeatures(self, r2DumpFile) :
+        dmpInfo = r2DumpFile.cmd('/xj 90')
+        dmpInfo = json.loads(dmpInfo)
+
+        slackFeatures = pd.DataFrame(dmpInfo)
+        slackFeatureCounts = len(slackFeatures.index)
+        slackCountsFrame = pd.DataFrame({"slackByteCount":[slackFeatureCounts]})
+
+        return slackCountsFrame

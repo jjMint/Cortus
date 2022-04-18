@@ -7,7 +7,6 @@
 
 import logging
 import pandas as pd
-import pprint
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,6 +26,7 @@ class Process :
     stringsFeatures     = None
     namespaceFeatures   = None
     importFeatures      = None
+    slackFeatures       = None
 
     def __init__(self, processName, processType):
         self.processName = processName
@@ -41,35 +41,39 @@ class Process :
         
     def setRegistryFeatures(self, registryFeatures) :
         self.registryFeatures = registryFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.registryFeatures)
 
     def setFlagFeatures(self, flagFeatures) :
         self.flagFeatures = flagFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.flagFeatures)
 
     def setSectionFeatures(self, sectionFeatures) :
         self.sectionFeatures = sectionFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.sectionFeatures)
         
     def setEntryPointFeatures(self, entryPointFeatures) :
         self.entryPointFeatures = entryPointFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.entryPointFeatures)
         
     def setRelocationFeatures(self, relocationFeatures) :
         self.relocationFeatures = relocationFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.relocationFeatures)
 
     def setStringFeatures(self, stringsFeatures) :
         self.stringsFeatures = stringsFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.stringsFeatures)
 
     def setNamespaceFeatures(self, namespaceFeatures) :
         self.namespaceFeatures = namespaceFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.namespaceFeatures)
 
     def setImportFeatures(self, importFeatures) :
         self.importFeatures = importFeatures
-        logging.debug(self.headerFeatures)
+        logging.debug(self.importFeatures)
+
+    def setSlackFeatures(self, slackFeatures) :
+        self.slackFeatures = slackFeatures
+        logging.debug(self.slackFeatures)
 
 #--------------------------------------------------------------------------------------------
 # Collater functions
@@ -80,7 +84,7 @@ class Process :
 
         processFeatures = pd.concat([processDetails, self.headerFeatures, self.registryFeatures, self.flagFeatures, 
                                     self.sectionFeatures, self.entryPointFeatures, self.relocationFeatures, 
-                                    self.stringsFeatures, self.namespaceFeatures, self.importFeatures], axis=1)        
+                                    self.stringsFeatures, self.namespaceFeatures, self.importFeatures, self.slackFeatures], axis=1)        
 
         return processFeatures
 

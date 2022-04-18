@@ -33,6 +33,15 @@ def blockPrint():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
+
+def cleanProcessFeatures(processFeatureFrame) :
+    processFeatureFrame = processFeatureFrame.dropna(axis=1)
+    processFeatureFrame = processFeatureFrame.fillna(0)
+    processFeatureFrame = processFeatureFrame.drop(['baddr', 'bintype', 'file', 'humansz'], axis=1)
+    processFeatureFrame = processFeatureFrame.drop(processFeatureFrame.filter(regex='stringcount').columns, axis=1)
+    return processFeatureFrame
+
+
 # --------------------------------------------------------------------------------------------
 # // DataLoader
 # --------------------------------------------------------------------------------------------
@@ -55,41 +64,24 @@ class DataLoader :
         largerFrames = []
 
         counter = 0
-        fileNum = 0
+        # fileNum = 0
 
         for csvFile in tqdm(os.listdir(self.inputFolder)) :
             csvFileName = os.fsdecode(csvFile)
             csvFilePath = os.path.join(os.fsdecode(self.inputFolder), csvFileName)
 
             processFeatures = pd.read_csv(csvFilePath)
-            logging.debug(processFeatures)
+            processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
-            counter += 1
-            
-            if counter == 15 :
-                finalDataset = pd.concat(processFeatureFrames, ignore_index=True)
-                logging.debug(finalDataset)
-                counter = 0
-                fileNum += 1
-                self.saveData(finalDataset, fileNum)
-                processFeatureFrames = []
-                largerFrames.append(finalDataset)
-                print(len(largerFrames))
 
-        
-        if counter > 0 :
-            finalDataset = pd.concat(processFeatureFrames, ignore_index=True)
-            self.saveData(finalDataset, fileNum)
-            largerFrames.append(finalDataset)
-        
-        finalDataset = pd.concat(largerFrames, ignore_index=True)
+        finalDataset = pd.concat(processFeatureFrames, ignore_index=True, axis='rows')
         logging.debug(finalDataset)
-        self.saveData(finalDataset, -1)
+        self.saveData(finalDataset, 'final')
         
 def main(argv) :
     parser = argparse.ArgumentParser(description='Create a complete dataset based on input files')
-    parser.add_argument('--iFolder', dest='inputFolder', help='The input folder for process dumps')
-    parser.add_argument('--oFolder', dest='outputFolder', help='The input folder for process dumps')
+    parser.add_argument('--iFolder', dest='inputFolder', help='The input folder for process csvs')
+    parser.add_argument('--oFolder', dest='outputFolder', help='The ouput folder for process csv')
 
     args = parser.parse_args()
 
