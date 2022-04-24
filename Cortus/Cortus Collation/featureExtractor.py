@@ -188,9 +188,13 @@ class MemoryFeatureExtractor :
         relocationFeatures = pd.DataFrame(dmpInfo)
         relocationFeatures = relocationFeatures.drop(['demname'], axis=1).T
         relocationFeaturesCount   = pd.DataFrame({'relocationCount':len(pd.DataFrame(dmpInfo).index)}, index=[0])
-        relocationValueCounts = relocationFeatures.loc['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        # relocationValueCounts = relocationFeatures.loc['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
-        relocationFeatures = pd.concat([relocationValueCounts, relocationFeaturesCount], axis=1)
+        relocationContent = relocationFeatures.loc['name'].tolist()
+        relocationContent = {"relocationContent":[relocationContent]}
+        relocationContentFrame = pd.DataFrame(relocationContent)
+        
+        relocationFeatures = pd.concat([relocationContentFrame, relocationFeaturesCount], axis=1)
         return relocationFeatures
 
 
@@ -201,17 +205,20 @@ class MemoryFeatureExtractor :
         stringsFeatures = pd.DataFrame(dmpInfo).drop(['blocks', 'paddr', 'vaddr'], axis=1)
 
         stringsFeaturesCount = pd.DataFrame({'stringCount':len(stringsFeatures.index)}, index=[0])
-        stringsValueCount = stringsFeatures['string'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("stringcount_").reset_index(drop=True)
-        stringsSectionValueCount = stringsFeatures['section'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectionstringcount_").reset_index(drop=True)
+        # stringsValueCount = stringsFeatures['string'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("stringcount_").reset_index(drop=True)
+        # stringsSectionValueCount = stringsFeatures['section'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectionstringcount_").reset_index(drop=True)
         stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectiontypecount_").reset_index(drop=True)
 
         # Here we want to create a list of all the strings per process so we can use TFIDF as a feature component in the wider models
-        stringContent = str(np.append(stringsFeatures['string'].to_numpy(), stringsFeatures['section'].to_numpy()))
-        stringContent = stringContent.replace('\'', '')
-        stringContent = {"stringContent":[stringContent]}
+        stringContent = stringsFeatures.loc['string'].tolist()
+        stringContent = {"stringContentFull":[stringContent]}
         stringContentFrame = pd.DataFrame(stringContent)
+        
+        sectionContent = stringsFeatures.loc['section'].tolist()
+        stringContent = {"sectionContentFull":[sectionContent]}
+        sectionContentFrame = pd.DataFrame(sectionContent)
 
-        stringsFeatures = pd.concat([stringsValueCount, stringsSectionValueCount, stringsTypeValueCount, stringsFeaturesCount, stringContentFrame], axis=1)
+        stringsFeatures = pd.concat([sectionContentFrame, stringContentFrame, stringsTypeValueCount, stringsFeaturesCount, stringContentFrame], axis=1)
         return stringsFeatures
 
 
@@ -222,10 +229,18 @@ class MemoryFeatureExtractor :
         importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1)
 
         importFeaturesCount = pd.DataFrame({'importCount':len(importFeatures.index)}, index=[0])
-        importFeaturesNameValueCount = importFeatures['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
-        importFeaturesLibNameValueCount = importFeatures['libname'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        # importFeaturesNameValueCount = importFeatures['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
+        # importFeaturesLibNameValueCount = importFeatures['libname'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
-        importFeatures = pd.concat([importFeaturesNameValueCount, importFeaturesLibNameValueCount, importFeaturesCount], axis=1)
+        importNameContent = importFeatures['name'].tolist()
+        importNameContent = {"importNameContentFull":[importNameContent]}
+        importNameContentFrame = pd.DataFrame(importNameContent)
+  
+        importLibContent = importFeatures['libname'].tolist()
+        importLibContent = {"importLibContentFull":[importLibContent]}
+        importLibContentFrame = pd.DataFrame(importLibContent)
+        
+        importFeatures = pd.concat([importNameContentFrame, importLibContentFrame, importFeaturesCount], axis=1)
         return importFeatures
 
     
