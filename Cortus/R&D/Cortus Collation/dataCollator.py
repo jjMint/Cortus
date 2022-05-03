@@ -38,7 +38,6 @@ def cleanProcessFeatures(processFeatureFrame) :
     processFeatureFrame = processFeatureFrame.dropna(axis=1)
     processFeatureFrame = processFeatureFrame.fillna(0)
     processFeatureFrame = processFeatureFrame.drop(['baddr', 'bintype', 'file', 'humansz'], axis=1)
-    processFeatureFrame = processFeatureFrame.drop(processFeatureFrame.filter(regex='stringcount').columns, axis=1)
     return processFeatureFrame
 
 
@@ -62,9 +61,7 @@ class DataLoader :
     def loadData(self) :
         processFeatureFrames = []
         largerFrames = []
-
         counter = 0
-        # fileNum = 0
 
         for csvFile in tqdm(os.listdir(self.inputFolder)) :
             csvFileName = os.fsdecode(csvFile)

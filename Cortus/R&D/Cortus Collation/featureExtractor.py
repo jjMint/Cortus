@@ -91,16 +91,20 @@ class MemoryFeatureExtractor :
             importFeatures                                      = self.createImportsFeatures(r2DumpFile)
             slackFeatures                                       = self.createSlackFeatures(r2DumpFile)
 
-            # Create the process object
-            process.setHeaderFeatures(headerFeatures)
-            process.setRegistryFeatures(registryFeatures)
-            process.setSectionFeatures(sectionFeatures)
-            process.setFlagFeatures(flagFeatures)
-            process.setEntryPointFeatures(entryPointFeatures)
-            process.setRelocationFeatures(relocationFeatures)
-            process.setStringFeatures(stringsFeatures)
-            process.setImportFeatures(importFeatures)
-            process.setSlackFeatures(slackFeatures)
+            # Create the process object per dump and write to to disk
+            try :
+                process.setHeaderFeatures(headerFeatures)
+                process.setRegistryFeatures(registryFeatures)
+                process.setSectionFeatures(sectionFeatures)
+                process.setFlagFeatures(flagFeatures)
+                process.setEntryPointFeatures(entryPointFeatures)
+                process.setRelocationFeatures(relocationFeatures)
+                process.setStringFeatures(stringsFeatures)
+                process.setImportFeatures(importFeatures)
+                process.setSlackFeatures(slackFeatures)
+            except :
+                logging.warning("Failed to set a feature for the analysed proccess, could be reduction in quality")
+
 
             process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
             r2DumpFile.quit()
@@ -143,11 +147,15 @@ class MemoryFeatureExtractor :
         dmpInfo = r2DumpFile.cmd('iSj')
         dmpInfo = json.loads(dmpInfo)
 
-        sectionFeaturesNameSize = []
-        sectionFeaturesNamePerms = []
+        sectionFeaturesNameSize      = []
+        sectionFeaturesNamePerms     = []
+        sectionFeaturesNameSizeList  = []
+        sectionFeaturesNamePermsList = []
         for section in dmpInfo:
             sectionFeaturesNameSize.append({section.get('name'): section.get('size')})
             sectionFeaturesNamePerms.append({section.get('name'): section.get('perm')})
+            sectionFeaturesNameSize.append(section.get('name') + '_' + str(section.get('size')))
+            sectionFeaturesNamePerms.append(section.get('name') + '_' + str(section.get('perm')))
 
         sectionFeaturesNameSize = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNameSize))
         sectionFeaturesNameSize = sectionFeaturesNameSize.T
@@ -157,7 +165,12 @@ class MemoryFeatureExtractor :
         sectionFeaturesNamePerms = sectionFeaturesNamePerms.T
         sectionFeaturesNamePerms = sectionFeaturesNamePerms.add_suffix("_perms")
 
-        sectionFeatures = pd.concat([sectionFeaturesNameSize, sectionFeaturesNamePerms], axis=1)
+        sectionFeaturesNameSizeContent = {"sectionNameSizeContentFull":sectionFeaturesNameSizeList}
+        sectionFeaturesNameSizeContentFrame = pd.DataFrame(sectionFeaturesNameSizeContent)
+        sectionFeaturesNamePermsContent = {"sectionNamePermsContentFull":sectionFeaturesNamePermsList}
+        sectionFeaturesNamePermsFrame = pd.DataFrame(sectionFeaturesNamePermsContent)
+
+        sectionFeatures = pd.concat([sectionFeaturesNameSize, sectionFeaturesNamePerms, sectionFeaturesNameSizeContentFrame, sectionFeaturesNamePermsFrame], axis=1)
         return sectionFeatures
 
 
@@ -168,7 +181,6 @@ class MemoryFeatureExtractor :
         flagFeatures = pd.DataFrame(dmpInfo)
         flagFeatures = flagFeatures.drop(['selected'], axis=1)
         flagFeatures = flagFeatures.set_index('name')
-
         flagFeatures = flagFeatures.T.reset_index()
         return flagFeatures
 
@@ -188,12 +200,10 @@ class MemoryFeatureExtractor :
         relocationFeatures = pd.DataFrame(dmpInfo)
         relocationFeatures = relocationFeatures.drop(['demname'], axis=1).T
         relocationFeaturesCount   = pd.DataFrame({'relocationCount':len(pd.DataFrame(dmpInfo).index)}, index=[0])
-        # relocationValueCounts = relocationFeatures.loc['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
         relocationContent = relocationFeatures.loc['name'].tolist()
         relocationContent = {"relocationContent":[relocationContent]}
         relocationContentFrame = pd.DataFrame(relocationContent)
-        
         relocationFeatures = pd.concat([relocationContentFrame, relocationFeaturesCount], axis=1)
         return relocationFeatures
 
@@ -203,22 +213,17 @@ class MemoryFeatureExtractor :
         dmpInfo = json.loads(dmpInfo)
 
         stringsFeatures = pd.DataFrame(dmpInfo).drop(['blocks', 'paddr', 'vaddr'], axis=1)
-
-        stringsFeaturesCount = pd.DataFrame({'stringCount':len(stringsFeatures.index)}, index=[0])
-        # stringsValueCount = stringsFeatures['string'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("stringcount_").reset_index(drop=True)
-        # stringsSectionValueCount = stringsFeatures['section'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectionstringcount_").reset_index(drop=True)
         stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectiontypecount_").reset_index(drop=True)
 
-        # Here we want to create a list of all the strings per process so we can use TFIDF as a feature component in the wider models
+        # Here we want to create a list of all the strings per process so we can perform LSH per process 
         stringContent = stringsFeatures.loc['string'].tolist()
         stringContent = {"stringContentFull":[stringContent]}
         stringContentFrame = pd.DataFrame(stringContent)
-        
         sectionContent = stringsFeatures.loc['section'].tolist()
         stringContent = {"sectionContentFull":[sectionContent]}
         sectionContentFrame = pd.DataFrame(sectionContent)
 
-        stringsFeatures = pd.concat([sectionContentFrame, stringContentFrame, stringsTypeValueCount, stringsFeaturesCount, stringContentFrame], axis=1)
+        stringsFeatures = pd.concat([stringsTypeValueCount, sectionContentFrame, stringContentFrame], axis=1)
         return stringsFeatures
 
 
@@ -227,15 +232,11 @@ class MemoryFeatureExtractor :
         dmpInfo = json.loads(dmpInfo)
 
         importFeatures = pd.DataFrame(dmpInfo).drop(['bind', 'plt'], axis=1)
-
         importFeaturesCount = pd.DataFrame({'importCount':len(importFeatures.index)}, index=[0])
-        # importFeaturesNameValueCount = importFeatures['name'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
-        # importFeaturesLibNameValueCount = importFeatures['libname'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("count_").reset_index(drop=True)
 
         importNameContent = importFeatures['name'].tolist()
         importNameContent = {"importNameContentFull":[importNameContent]}
         importNameContentFrame = pd.DataFrame(importNameContent)
-  
         importLibContent = importFeatures['libname'].tolist()
         importLibContent = {"importLibContentFull":[importLibContent]}
         importLibContentFrame = pd.DataFrame(importLibContent)
@@ -251,5 +252,4 @@ class MemoryFeatureExtractor :
         slackFeatures = pd.DataFrame(dmpInfo)
         slackFeatureCounts = len(slackFeatures.index)
         slackCountsFrame = pd.DataFrame({"slackByteCount":[slackFeatureCounts]})
-
         return slackCountsFrame
