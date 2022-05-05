@@ -121,7 +121,6 @@ class MemoryFeatureExtractor :
 
     def createHeaderFeatures(self, r2DumpFile) :
         dmpInfoHeader = r2DumpFile.cmdj('ij')
-        # dmpInfoHeader = json.loads(dmpInfoHeader)
 
         headerBinFeatures = dmpInfoHeader['bin']
         headerBinFeatures = pd.json_normalize(headerBinFeatures)
@@ -134,7 +133,6 @@ class MemoryFeatureExtractor :
 
     def createRegisterFeatures(self, r2DumpFile) :
         dmpInfoReg = r2DumpFile.cmdj('drj')
-        # dmpInfoReg = json.loads(dmpInfoReg)
 
         registryFeatures = dmpInfoReg
         registryFeatures = pd.json_normalize(registryFeatures)
@@ -144,7 +142,6 @@ class MemoryFeatureExtractor :
     # Module and sections result in same data
     def createSectionFeatures(self, r2DumpFile) :
         dmpInfoSection = r2DumpFile.cmdj('iSj')
-        dmpInfoSection = json.loads(dmpInfoSection)
 
         sectionFeaturesNameSize      = []
         sectionFeaturesNamePerms     = []
@@ -176,7 +173,6 @@ class MemoryFeatureExtractor :
 
     def createFlagFeatures(self, r2DumpFile) :
         dmpInfoFlag = r2DumpFile.cmdj('fsj')
-        # dmpInfoFlag = json.loads(dmpInfoFlag)
 
         flagFeatures = pd.DataFrame(dmpInfoFlag)
         flagFeatures = flagFeatures.drop(['selected'], axis=1)
@@ -187,7 +183,6 @@ class MemoryFeatureExtractor :
 
     def createEntryPointFeatures(self, r2DumpFile) :
         dmpInfoEp = r2DumpFile.cmdj('dbtj')
-        # dmpInfoEp = json.loads(dmpInfoEp)
 
         entryPointFeatures = pd.DataFrame(dmpInfoEp)
         return entryPointFeatures
@@ -195,7 +190,6 @@ class MemoryFeatureExtractor :
 
     def createRelocationFeatures(self, r2DumpFile) :
         dmpInfoReloc = r2DumpFile.cmdj('irj')
-        # dmpInfoReloc = json.loads(dmpInfoReloc)
 
         relocationFeatures = pd.DataFrame(dmpInfoReloc)
         relocationFeatures = relocationFeatures.drop(['demname'], axis=1).T
@@ -210,7 +204,6 @@ class MemoryFeatureExtractor :
 
     def createStringFeatures(self, r2DumpFile) :
         dmpInfoStrings = r2DumpFile.cmdj('izj')
-        # dmpInfoStrings = json.loads(dmpInfoStrings)
 
         stringsFeatures = pd.DataFrame(dmpInfoStrings).drop(['blocks', 'paddr', 'vaddr'], axis=1)
         stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectiontypecount_").reset_index(drop=True)
@@ -229,7 +222,6 @@ class MemoryFeatureExtractor :
 
     def createImportsFeatures(self, r2DumpFile) :
         dmpInfoImp = r2DumpFile.cmdj('iij')
-        # dmpInfoImp = json.loads(dmpInfoImp)
 
         importFeatures = pd.DataFrame(dmpInfoImp).drop(['bind', 'plt'], axis=1)
         importFeaturesCount = pd.DataFrame({'importCount':len(importFeatures.index)}, index=[0])
@@ -247,7 +239,6 @@ class MemoryFeatureExtractor :
     
     def createSlackFeatures(self, r2DumpFile) :
         dmpInfoSlack = r2DumpFile.cmdj('/xj 90')
-        # dmpInfoSlack = json.loads(dmpInfoSlack)
 
         slackFeatures = pd.DataFrame(dmpInfoSlack)
         slackFeatureCounts = len(slackFeatures.index)

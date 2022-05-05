@@ -13,6 +13,7 @@ import argparse
 import csv
 import dataCollator
 import logging
+import model
 import featureExtractor
 import pandas as pd
 import PySimpleGUI as sg
@@ -51,6 +52,35 @@ class CortusApplication:
         parser.add_argument('--createModel', dest='createModel', type=bool, help='Run the application to train a model')
 
 
+    def createModel(self) :
+        modelManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.Button('Train Model', key="-TRAINMODEL-")], 
+                                  [sg.Button('View Model Details', key="-VIEWMODELDETAILS-")],
+                                  [sg.In(size=(30, 2), enable_events=True, key="-DATASET-"),
+                                   sg.FilesBrowse('Select')]
+                                ]
+        layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
+                                  [sg.Text("Dataset Creation", font=("40"))],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.VSeperator(),
+                                   sg.Column(modelManagementColumn, vertical_alignment='t')],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.Button('Exit')]
+                                ]
+
+        modelWindow = sg.Window("Cortus Malware Analyzer", layout, element_justification='c')
+
+        while True:
+            event, values = modelWindow.read()
+            if event == "Exit" or event == sg.WIN_CLOSED:
+                modelWindow.close()
+                break
+            if event == "-TRAINMODEL-" :
+                dataset = values["-DATASET-"]
+                model.CortusModel(dataset)
+
+
     def createCsvViewerWindow(self, filename) :
         try:
             data = []
@@ -76,6 +106,7 @@ class CortusApplication:
         except Exception as e:
             logging.error(e)
             pass
+
 
     def createDataCSVSetWindow(self) :
         dataManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
@@ -143,12 +174,6 @@ class CortusApplication:
                 malInfolder = values['-MALFOLDER-']
                 outFolder   = values['-OUTFOLDER-']
                 dataCollator.DataLoader(benInfolder, malInfolder, outFolder)
-            # elif event == "-FILELIST-":  # A file was chosen from the listbox
-            #     try :
-            #         filename = os.path.join(values["-DMPFOLDER-"], values["-FILELIST-"][0])
-            #         self.createCsvViewerWindow(filename)
-            #     except :
-            #         pass
                 
 
     def extractFeaturesFromDMPWindow(self) :
@@ -199,6 +224,7 @@ class CortusApplication:
                 processType = values["-PROCESSTYPEBEN-"] if not None else values["-PROCESSTYPEMAL-"]
                 featureExtractor.MemoryFeatureExtractor(folder, outfolder, processType)
 
+
     def createStartupLayout(self) :
         modelManagementColumn = [ [sg.Text("Cortus Model Management")],
                                   [sg.HorizontalSeparator()],
@@ -242,7 +268,7 @@ class CortusApplication:
             if event == '-LOADMODEL-' :
                 self.createModelManagementWindow()
             if event == '-CREATEMODEL-' :
-                self.createModelCreationWindow()
+                self.createModel()
             if event == '-CREATECSVDATASET-' :
                 self.createDataCSVSetWindow()
             if event == '-LOADDMPPROCESSDATASET-' :
@@ -252,8 +278,7 @@ class CortusApplication:
             if event == '-TESTPROCESS-' :
                 self.createTestingWindow()
             if event == '-REVIEWANALYSIS-' :
-                self.createAnalysisHistoryWindow()
-                
+                self.createAnalysisHistoryWindow()    
         window.close()
         exit()
 

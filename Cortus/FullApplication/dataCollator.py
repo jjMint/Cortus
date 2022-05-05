@@ -5,9 +5,9 @@
 # Process Memory collation class that defines the process of extracting features using radare2
 # ------------------------------------------------------------------------------------------------------------------
 
-import argparse
 import logging
 import os
+import PySimpleGUI as sg
 import pandas as pd
 import sys
 
@@ -65,22 +65,30 @@ class DataLoader :
 
     def loadData(self) :
         processFeatureFrames = []
+        count = 0
 
         for csvFile in tqdm(os.listdir(self.benInputFolder)) :
+            numFiles = len(os.listdir(self.benInputFolder))
+            sg.one_line_progress_meter('Benign Set Collation', count + 1, numFiles)
             csvFileName = os.fsdecode(csvFile)
             csvFilePath = os.path.join(os.fsdecode(self.benInputFolder), csvFileName)
 
             processFeatures = pd.read_csv(csvFilePath)
             processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
-        
+            count = count + 1
+        count = 0
+
         for csvFile in tqdm(os.listdir(self.malInputFolder)) :
+            numFiles = len(os.listdir(self.malInputFolder))
+            sg.one_line_progress_meter('Malware Set Collation', count + 1, numFiles)
             csvFileName = os.fsdecode(csvFile)
             csvFilePath = os.path.join(os.fsdecode(self.malInputFolder), csvFileName)
 
             processFeatures = pd.read_csv(csvFilePath)
             processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
+            count = count + 1
 
         finalDataset = pd.concat(processFeatureFrames, ignore_index=True, axis='rows')
         logging.debug(finalDataset)
