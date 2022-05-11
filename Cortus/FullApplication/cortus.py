@@ -11,7 +11,7 @@
 
 import argparse
 import csv
-import dataCollator
+import datasetCreator
 import logging
 import model
 import featureExtractor
@@ -55,7 +55,9 @@ class CortusApplication:
     def createModel(self) :
         modelManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Train Model', key="-TRAINMODEL-")], 
+                                  [sg.Button('Train Model from Collated Dataset', key="-TRAINMODEL-"),
+                                  sg.In(size=(30, 2), enable_events=True, key="-OUTFOLDER-"),
+                                  sg.FolderBrowse()], 
                                   [sg.Button('View Model Details', key="-VIEWMODELDETAILS-")],
                                   [sg.In(size=(30, 2), enable_events=True, key="-DATASET-"),
                                    sg.FilesBrowse('Select')]
@@ -77,8 +79,9 @@ class CortusApplication:
                 modelWindow.close()
                 break
             if event == "-TRAINMODEL-" :
-                dataset = values["-DATASET-"]
-                model.CortusModel(dataset)
+                dataset   = values["-DATASET-"]
+                outFolder = values['-OUTFOLDER-']
+                model.CortusModel(dataset, outFolder)
 
 
     def createCsvViewerWindow(self, filename) :
@@ -156,7 +159,7 @@ class CortusApplication:
                     file_list = os.listdir(folder)
                 except:
                     file_list = []
-                fnames = [f for f in file_list if os.path.isfile(os.path.join(folder, f)) and f.lower().endswith((".csv"))]
+                fnames = [f for f in file_list if os.path.isfile(os.path.join(folder, f)) and f.lower().endswith((".pkl"))]
                 csvWindow["-BENFILELIST-"].update(fnames)
 
             if event == "-MALFOLDER-":
@@ -166,14 +169,14 @@ class CortusApplication:
                     file_list = os.listdir(folder)
                 except:
                     file_list = []
-                fnames = [f for f in file_list if os.path.isfile(os.path.join(folder, f)) and f.lower().endswith((".csv"))]
+                fnames = [f for f in file_list if os.path.isfile(os.path.join(folder, f)) and f.lower().endswith((".pkl"))]
                 csvWindow["-MALFILELIST-"].update(fnames)
                 
             if event == "-CREATEDATASET-" :
                 benInfolder = values["-BENFOLDER-"]
                 malInfolder = values['-MALFOLDER-']
                 outFolder   = values['-OUTFOLDER-']
-                dataCollator.DataLoader(benInfolder, malInfolder, outFolder)
+                datasetCreator.DataLoader(benInfolder, malInfolder, outFolder)
                 
 
     def extractFeaturesFromDMPWindow(self) :

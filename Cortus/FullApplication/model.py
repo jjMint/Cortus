@@ -8,230 +8,164 @@
 # training and storage of the trained Cortus model
 # ------------------------------------------------------------------------------------------------------------------
 
-import ast
 import matplotlib.pyplot as plt
 import numpy as np
 import logging
+import os
 import pandas as pd
 import sys
 import seaborn as sns
 
-from cmath import pi
-from random import shuffle
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, adjusted_rand_score, accuracy_score
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, MaxAbsScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn import svm
+from datasketch import MinHash
+from sklearn.neighbors import KNeighborsClassifier
+from mlxtend.plotting import plot_decision_regions
+from sklearn.feature_selection import SelectKBest, f_regression
 
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
-
+workingDirectory = os.path.dirname(os.path.abspath(__file__))
 
 class CortusModel:
+    # Define the model, dataset and outpath for saving
     model           = None
     dataset         = None
-    stringVocab     = None
-    sectionVocab    = None
-    importLibVocab  = None
-    relocationVocab = None
-    importNameVocab = None
+    outFolder       = None
+    dataset_true_labels = None
 
-    def __init__(self, dataset, flag=None):
+    def __init__(self, dataset, outFolder, flag=None):
         logging.info("Creating Cortus Malware Analysis Model")
-        self.dataset = pd.read_csv(dataset, sep=',', low_memory=False, index_col=[0] )
-        self.dataset = self.dataset.dropna(axis=1, how='all')
-        self.dataset = self.dataset.fillna(0)
-        self.dataPreProcessing()
-        self.lshPreProcessing()
-        self.createModel()
+        self.dataset = pd.read_pickle(dataset)
+        self.dataset = self.dataset.reset_index(drop=True)
+        self.outFolder = outFolder
+
+        # self.analyzeDataset(dataset)
+        self.createModel(dataset)
 
 
-    def dataPreProcessing(self) :
-        # Find counts of level of permissions
-        logging.info("Processing Dataset")
-        self.dataset[self.dataset.filter(regex='_perms').columns] = self.dataset[self.dataset.filter(regex='_perms').columns].apply(lambda col:(pd.Categorical(col).codes))
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset[self.dataset.filter(regex='_perms').columns].stack().groupby(level=0).value_counts().unstack(fill_value=0).add_prefix("permissionCount_"))], axis=1)
-        self.dataset = self.dataset.drop(self.dataset.filter(regex='_perms').columns, axis=1)
-
-        # Grab count of interesting memory sections per process dump
-        self.dataset = self.dataset.drop(self.dataset.filter(regex='Memory_Section').columns, axis=1)
-        dataUniqueMemorySectionCount = self.dataset[self.dataset.filter(regex='_size').columns].gt(0).sum(axis=1)
-        self.dataset['uniqueMemorySectionCount'] = dataUniqueMemorySectionCount
-        self.dataset = self.dataset.drop(self.dataset.filter(regex='_size').columns, axis=1)
-
-        # Clean up string data into categorical data
-        self.dataset['processType'] = pd.Categorical(self.dataset['processType']).codes
-        self.dataset['arch'] = pd.Categorical(self.dataset['arch']).codes
-        self.dataset['bits'] = pd.Categorical(self.dataset['bits']).codes
-        self.dataset['canary'] = pd.Categorical(self.dataset['canary']).codes
-        self.dataset['retguard'] = pd.Categorical(self.dataset['retguard']).codes
-        self.dataset['crypto'] = pd.Categorical(self.dataset['crypto']).codes
-        self.dataset['endian'] = pd.Categorical(self.dataset['endian']).codes
-        self.dataset['flags'] = pd.Categorical(self.dataset['flags']).codes
-        self.dataset['havecode'] = pd.Categorical(self.dataset['havecode']).codes
-        self.dataset['machine'] = pd.Categorical(self.dataset['machine']).codes
-        self.dataset['static'] = pd.Categorical(self.dataset['static']).codes
-
-        self.dataset_true_labels = self.dataset[['processType', 'processName']]
-        self.dataset = self.dataset.drop(['processType', 'processName'], 1)
-
-
-    def lshPreProcessing(self) :
-        logging.info("Creating LSH Hashes and Vocabs")
-        # Convert to the equivalent of our "Shingles" (We can use the full words except for strings)
-        self.dataset['sectionContentFull']    = self.dataset['sectionContentFull'].apply(ast.literal_eval)
-        self.dataset['stringContentFull']     = self.dataset['stringContentFull'].apply(ast.literal_eval)
-        self.dataset['relocationContentFull'] = self.dataset['relocationContentFull'].apply(ast.literal_eval)
-        self.dataset['importNameContentFull'] = self.dataset['importNameContentFull'].apply(ast.literal_eval)
-        self.dataset['importLibContentFull']  = self.dataset['importLibContentFull'].apply(ast.literal_eval)
-
-        self.sectionVocab    = set().union(*self.dataset['sectionContentFull'])
-        self.stringVocab     = set().union(*self.dataset['stringContentFull'])
-        self.importLibVocab  = set().union(*self.dataset['importLibContentFull'])
-        self.relocationVocab = set().union(*self.dataset['relocationContentFull'])
-        self.importNameVocab = set().union(*self.dataset['importNameContentFull'])
-        
-        sectionList = []
-        for index, value in self.dataset['sectionContentFull'].items() :
-            valueList = [1 if x in value else 0 for x in self.sectionVocab]
-            sectionList.append(valueList)
-
-        stringList = []
-        for index, value in self.dataset['stringContentFull'].items() :
-            valueList = [1 if x in value else 0 for x in self.stringVocab]
-            stringList.append(valueList)
-
-        relocList = []
-        for index, value in self.dataset['relocationContentFull'].items() :
-            valueList = [1 if x in value else 0 for x in self.relocationVocab]
-            relocList.append(valueList)
-
-        importNameList = []
-        for index, value in self.dataset['importNameContentFull'].items() :
-            valueList = [1 if x in value else 0 for x in self.importNameVocab]
-            importNameList.append(valueList)
-
-        importLibList = []
-        for index, value in self.dataset['importLibContentFull'].items() :
-            valueList = [1 if x in value else 0 for x in self.importLibVocab]
-            importLibList.append(valueList)
-
-        self.dataset['stringContentEncoding']     = stringList
-        self.dataset['sectionContentEncoding']    = sectionList
-        self.dataset['importLibContentEncoding']  = importLibList
-        self.dataset['relocationContentEncoding'] = relocList
-        self.dataset['importNameContentEncoding'] = importNameList
-
-        section_minhash    = self.build_minhash_func(len(self.sectionVocab), 20)
-        string_minhash     = self.build_minhash_func(len(self.stringVocab), 20)
-        reloc_minhash      = self.build_minhash_func(len(self.relocationVocab), 20)
-        importName_minhash = self.build_minhash_func(len(self.importNameVocab), 20)
-        importLib_minhash  = self.build_minhash_func(len(self.importLibVocab), 20)
-
-        self.dataset['sectionHash'] = self.dataset['sectionContentEncoding'].apply(lambda x: self.create_hash(self.sectionVocab, x, section_minhash))
-        self.dataset['stringHash']  = self.dataset['stringContentEncoding'].apply(lambda x: self.create_hash(self.stringVocab, x, string_minhash))
-        self.dataset['relocationHash'] = self.dataset['relocationContentEncoding'].apply(lambda x: self.create_hash(self.relocationVocab, x, reloc_minhash))
-        self.dataset['importNameHash'] = self.dataset['importNameContentEncoding'].apply(lambda x: self.create_hash(self.importNameVocab, x, importName_minhash))
-        self.dataset['importLibHash']  = self.dataset['importLibContentEncoding'].apply(lambda x: self.create_hash(self.importLibVocab, x, importLib_minhash))
-
-        self.dataset = self.dataset.drop(['sectionContentEncoding', 'stringContentEncoding', 'relocationContentEncoding', 'importNameContentEncoding', 'importLibContentEncoding'], 1)
-        self.dataset = self.dataset.drop(['sectionContentFull', 'stringContentFull', 'relocationContentFull', 'importNameContentFull', 'importLibContentFull'], 1)
-      
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset['sectionHash'].tolist())], axis=1)
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset['stringHash'].tolist())], axis=1)
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset['relocationHash'].tolist())], axis=1)
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset['importNameHash'].tolist())], axis=1)
-        self.dataset = pd.concat([self.dataset, pd.DataFrame(self.dataset['importLibHash'].tolist())], axis=1)
-
+    def analyzeDataset(self, dataset) :
+        self.dataset = self.dataset.drop(['processType'], 1)
         self.dataset = self.dataset[self.dataset.T[self.dataset.dtypes!=np.object].index]
+        # self.dataset = self.dataset.astype('float')
+
+        feature_selector = SelectKBest(f_regression, k = "all")
+        fit = feature_selector.fit(self.dataset, true_labels)
+
+        p_values = pd.DataFrame(fit.pvalues_)
+        scores = pd.DataFrame(fit.scores_)
+        input_variable_names = pd.DataFrame(self.dataset.columns)
+        summary_stats = pd.concat([input_variable_names, p_values, scores], axis = 1)
+        # summary_stats.to_csv(os.path.join(os.fsdecode(self.outFolder), 'datasetsummary.csv'))
+        summary_stats.columns = ["input_variable", "p_value", "f_score"]
+        summary_stats.sort_values(by = "p_value", inplace = True)
+
+        p_value_threshold = 0.05
+        score_threshold = 5
+
+        selected_variables = summary_stats.loc[(summary_stats["f_score"] >= score_threshold) &
+                                            (summary_stats["p_value"] <= p_value_threshold)]
+        selected_variables = selected_variables["input_variable"].tolist()
 
 
-    def create_hash_func(self, size):
-        # function for creating the hash vector/function
-        hash_ex = list(range(1, size+1))
-        shuffle(hash_ex)
-        return hash_ex
 
-    def build_minhash_func(self, vocab_size, nbits):
-        # function for building multiple minhash vectors
-        hashes = []
-        for _ in range(nbits):
-            hashes.append(self.create_hash_func(vocab_size))
-        return hashes
+        summary_stats.to_csv(os.path.join(os.fsdecode(self.outFolder), 'datasetsummary.csv'))
 
-    def create_hash(self, vocab, vector, minhash_func):
-        # use this function for creating our signatures (eg the matching)
-        signature = []
-        for func in minhash_func:
-            for i in range(1, len(vocab)+1):
-                idx = func.index(i)
-                print(vector)
-                signature_val = vector[idx]
-                if signature_val == 1:
-                    signature.append(idx)
-                    break
-        return signature
-
-    def make_meshgrid(self, x, y, h=.02):
-        x_min, x_max = x.min() - 1, x.max() + 1
-        y_min, y_max = y.min() - 1, y.max() + 1
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
-        return xx, yy
-
-    def plot_contours(self, ax, clf, xx, yy, **params):
-        Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-        Z = Z.reshape(xx.shape)
-        out = ax.contourf(xx, yy, Z, **params)
-        return out
-
-    def createPipeline(self):
-        preprocessor = Pipeline(
-        [("scaler", StandardScaler()),
-         ("pca", PCA(n_components=2, random_state=42))]
-        )
-        classifier = Pipeline(
-        [( "SVC",
-            svm.SVC(kernel='rbf'))]
-        )
-        clusterer = Pipeline(
-        [("KNN",
-           KMeans(n_clusters=2))]
-        )
-        pipe = Pipeline(
-        [("preprocessor", preprocessor),
-         ("clusterer", classifier)]
-        )
-
-        return preprocessor, classifier, clusterer, pipe
-
-    def createModel(self):
+    def createModel(self, dataset):
         logging.info("Training and Testing Model")
-        X_train, X_test, y_train, y_test = train_test_split(self.dataset, self.dataset_true_labels['processType'], test_size=0.3) # 70% training and 30% test
-        preprocessor, classifier, clusterer, pipe = self.createPipeline()
+
+        self.dataset_true_labels = self.dataset[['processType']]
+        label_encoder   = LabelEncoder()
+        true_labels     = label_encoder.fit_transform(self.dataset_true_labels['processType'])
+
+        self.dataset = self.dataset.drop(['processType'], 1)
+        self.dataset = self.dataset[self.dataset.T[self.dataset.dtypes!=np.object].index]
 
         label_encoder   = LabelEncoder()
         true_labels     = label_encoder.fit_transform(self.dataset_true_labels['processType'])
-        classifierModel = pipe.fit(X_train, y_train)
 
-        preprocessed_data = pipe["preprocessor"].transform(X_test)
-        predicted_labels  = pipe["clusterer"]["SVC"].predict(preprocessed_data)
+        X_train, X_test, y_train, y_test = train_test_split(self.dataset, true_labels, test_size=0.3) # 70% training and 30% test
 
-        print("Accuracy:", accuracy_score(y_test, predicted_labels))
+        logging.info(X_train)
 
-        fig, ax = plt.subplots()
-        title = ('Decision surface of RBF SVC ')
-        X0, X1 = preprocessed_data[:, 0], preprocessed_data[:, 1]
-        xx, yy = self.make_meshgrid(X0, X1)
+        scaler = StandardScaler()
+        pca = PCA(n_components = 2)
 
-        self.plot_contours(ax, pipe["clusterer"]["SVC"], xx, yy, cmap=plt.cm.coolwarm, alpha=0.8)
-        ax.scatter(X0, X1, c=y_test, cmap=plt.cm.coolwarm, s=20, edgecolors='k')
-        ax.set_ylabel('PCA Component 1')
-        ax.set_xlabel('PCA Component 2')
-        ax.set_xticks(())
-        ax.set_yticks(())
-        ax.set_title(title)
-        ax.legend()
+        X_std_train = scaler.fit_transform(X_train)
+        X_std_train = pca.fit_transform(X_std_train)
+        X_std_test = scaler.fit_transform(X_test)
+        X_std_test = pca.fit_transform(X_std_test)
+
+
+        svc = svm.SVC(kernel='rbf')
+        model = svc.fit(X_std_train, y_train)
+        predicted_labels = svc.predict(X_std_test)
+
+        logging.info("Accuracy: {}".format(accuracy_score(y_test, predicted_labels)))
+
+        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
+        # Solve for w3 (z)
+        # z = lambda x,y: (-model.intercept_[0]-model.coef_[0][0]*x -model.coef_[0][1]*y) / model.coef_[0][2]
+
+        # tmp = np.linspace(-5,5,30)
+        # x,y = np.meshgrid(tmp,tmp)
+
+        # fig = plt.figure()
+        # ax  = fig.add_subplot(111, projection='3d')
+        # ax.plot3D(X_std_train[y_train==0,0], X_std_train[y_train==0,1], X_std_train[y_train==0,2],'ob')
+        # ax.plot3D(X_std_train[y_train==1,0], X_std_train[y_train==1,1], X_std_train[y_train==1,2],'sr')
+        # ax.plot_surface(x, y, z(x,y))
+        # ax.view_init(30, 60)
+        # plt.show()
+
+        value=0.5
+        width=0.25
+        # Plot Decision Region using mlxtend's awesome plotting function
+        ax = plot_decision_regions(X=X_std_train, 
+                            y=y_train,
+                            clf=model,
+                            legend=2)
+
+        # Update plot object with X/Y axis labels and Figure Title
+        plt.xlabel("PCA 1", size=14)
+        plt.ylabel("PCA 2", size=14)
+        plt.title('SVM Decision Region Boundary', size=16)
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, 
+                ['Benign', 'Malware'], 
+                framealpha=0.3, scatterpoints=1)
+
+        plt.show()
+        plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
+    
+        knn = KNeighborsClassifier(n_neighbors=2)
+        knn.fit(X_std_train, y_train)
+        y_pred = knn.predict(X_std_test)
+        logging.info("KNN Accuracy: {}".format(accuracy_score(y_pred, predicted_labels)))
+
+         
+        value=1.5
+        width=0.75
+
+        ax = plot_decision_regions(X_std_train, y_train, 
+                                    clf=knn, 
+                                    filler_feature_values={2: value, 3:value, 4:value, 5:value},
+                                    filler_feature_ranges={2: width, 3: width, 4:width, 5:width},
+                                    legend=2)# Adding axes annotations
+        plt.xlabel("PCA 1", size=14)
+        plt.ylabel("PCA 2", size=14)
+        plt.title('KNN Decision Region Boundary', size=16)
+        # plt.title('Knn with K='+ str(2))
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, 
+                ['Benign', 'Malware'], 
+                framealpha=0.3, scatterpoints=1)
+
         plt.show()
