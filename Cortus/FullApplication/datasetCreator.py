@@ -59,14 +59,28 @@ class DataLoader :
 
     def __init__(self, benInputFolder, malInputFolder, outputFolder) :
         logging.info("Beginning Data Collation")
-
         self.benInputFolder = benInputFolder
         self.malInputFolder = malInputFolder
         self.outputFolder = outputFolder
         self.loadData()
 
-    def saveData(self, dataset, count) :
+
+    def _saveData(self, dataset, count) :
         dataset.to_pickle(os.path.join(os.fsdecode(self.outputFolder), 'dataset{}.pkl'.format(count)))
+
+
+    def processAndSaveData(self, processFrame) :
+        dataset = pd.concat(processFrame)
+        dataset = dataset.reset_index(drop=True)
+
+        dataset = self.dataPreProcessing(dataset)
+        dataset = self.minhashPreProcessing(dataset)
+        logging.info(dataset)
+        self._saveData(dataset, 'final')
+        self.combinedDataFrame = dataset
+
+        return dataset
+
 
     def loadData(self) :
         processFeatureFrames = []
@@ -98,43 +112,17 @@ class DataLoader :
         # This step can take a while so provide a loading screen for the user
         t1 = threading.Thread(target=self.processAndSaveData, args=(processFeatureFrames,))
         t1.start()
-        # self.loadingScreeen()
+        self.loadingScreeen()
         t1.join()
 
 
-    # def loadingScreeen(self) :
-
-    #     imageElement = sg.Image(os.path.join(workingDirectory, 'resources\loadingbar.gif'), size=(400, 400), key='-IMAGE-')
-    #     layout = [  
-    #                 [sg.Text('Loading....', font='ANY 15')],
-    #                 [imageElement]
-    #             ]
-    #     modelWindow = sg.Window("Cortus Malware Analyzer ( Loading ) ", layout, element_justification='c')
-
-    #     while self.combinedDataFrame is None :
-    #         event, values = modelWindow.read(timeout=100)
-    #         modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources\loadingbar.gif'), 100)
-        
-    #     modelWindow.close()
-
-    def processAndSaveData(self, processFrame) :
-        dataset = pd.concat(processFrame)
-        dataset = dataset.reset_index(drop=True)
-
-        dataset = self.dataPreProcessing(dataset)
-        dataset = self.lshPreProcessing(dataset)
-        logging.info(dataset)
-        self.saveData(dataset, 'final')
-        self.combinedDataFrame = dataset
-
-        return dataset
-
-
     def dataPreProcessing(self, dataset) :
-        # Find counts of level of permissions
+        # Drop 
         logging.info("Processing Dataset")
         dataset = dataset.dropna(axis=1, how='all')
         dataset = dataset.fillna(0)
+
+        # Find counts of level of permissions
         dataset[dataset.filter(regex='_perms').columns] = dataset[dataset.filter(regex='_perms').columns].apply(lambda col:(pd.Categorical(col).codes))
         dataset = pd.concat([dataset, pd.DataFrame(dataset[dataset.filter(regex='_perms').columns].stack().groupby(level=0).value_counts().unstack(fill_value=0).add_prefix("permissionCount_"))], axis=1)
         dataset = dataset.drop(dataset.filter(regex='_perms').columns, axis=1)
@@ -146,39 +134,60 @@ class DataLoader :
         dataset = dataset.drop(dataset.filter(regex='_size').columns, axis=1)
 
         # Clean up string data into categorical data
-        dataset['arch'] = pd.Categorical(dataset['arch']).codes
-        dataset['bits'] = pd.Categorical(dataset['bits']).codes
-        dataset['canary'] = pd.Categorical(dataset['canary']).codes
+        dataset['arch']     = pd.Categorical(dataset['arch']).codes
+        dataset['bits']     = pd.Categorical(dataset['bits']).codes
+        dataset['canary']   = pd.Categorical(dataset['canary']).codes
         dataset['retguard'] = pd.Categorical(dataset['retguard']).codes
-        dataset['crypto'] = pd.Categorical(dataset['crypto']).codes
-        dataset['endian'] = pd.Categorical(dataset['endian']).codes
-        dataset['flags'] = pd.Categorical(dataset['flags']).codes
+        dataset['crypto']   = pd.Categorical(dataset['crypto']).codes
+        dataset['endian']   = pd.Categorical(dataset['endian']).codes
+        dataset['flags']    = pd.Categorical(dataset['flags']).codes
         dataset['havecode'] = pd.Categorical(dataset['havecode']).codes
-        dataset['machine'] = pd.Categorical(dataset['machine']).codes
-        dataset['static'] = pd.Categorical(dataset['static']).codes
+        dataset['machine']  = pd.Categorical(dataset['machine']).codes
+        dataset['static']   = pd.Categorical(dataset['static']).codes
 
         dataset = dataset.iloc[: , 1:]
         dataset.loc[:, ~dataset.eq(0).all()]
 
         return dataset
 
-    def lshPreProcessing(self, dataset) :
+
+    def minhashPreProcessing(self, dataset) :
+        # Make a list of the relevant columns we want to MinHash 
         hashColumnLists = [ ('stringContentFull', 'stringHash'), ('sectionContentFull', 'sectionHash'), ('sectionSizeFull', 'sectionSizeHash'), 
                             ('sectionPermsFull', 'sectionPermsHash'), ('relocationContentFull', 'relocationHash'), ('importNameContentFull', 'importNameHash'), ('importLibContentFull', 'importLibHash')]
 
+        # For each, create a hash, and add the relevant hash columns to the current dataset
         for seriesColumn in hashColumnLists :
-            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}_", 1)
+            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}_", 10)
             dataset = pd.concat([dataset, hashBucketFrame], axis=1)
 
+        # Drop the full content
         dataset = dataset.drop(['sectionContentFull', 'sectionSizeFull', 'sectionPermsFull', 'stringContentFull', 'relocationContentFull', 'importNameContentFull', 'importLibContentFull'], 1)
 
         return dataset
 
+
     def stringToMinhash(self, stringSeries, hashingPrefix, hashLength) :
         minhashList = []
         m = MinHash(num_perm=hashLength)
+
         for row in stringSeries :
             for s in row :
                 m.update(s.encode('utf8'))
             minhashList.append(m.digest().tolist())
         return pd.DataFrame(minhashList).add_prefix(hashingPrefix)
+
+
+    def loadingScreeen(self) :
+        imageElement = sg.Image(os.path.join(workingDirectory, 'resources\loadingbar.gif'), size=(400, 400), key='-IMAGE-')
+        layout = [  
+                    [sg.Text('Loading....', font='ANY 15')],
+                    [imageElement]
+                ]
+        modelWindow = sg.Window("Cortus Malware Analyzer ( Loading ) ", layout, element_justification='c')
+
+        while self.combinedDataFrame is None :
+            event, values = modelWindow.read(timeout=100)
+            modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources\loadingbar.gif'), 100)
+        
+        modelWindow.close()

@@ -55,11 +55,13 @@ class CortusApplication:
     def createModel(self) :
         modelManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Train Model from Collated Dataset', key="-TRAINMODEL-"),
-                                  sg.In(size=(30, 2), enable_events=True, key="-OUTFOLDER-"),
-                                  sg.FolderBrowse()], 
-                                  [sg.Button('View Model Details', key="-VIEWMODELDETAILS-")],
-                                  [sg.In(size=(30, 2), enable_events=True, key="-DATASET-"),
+                                  [sg.Button('Train Model from Dataset', key="-TRAINMODEL-")],
+                                  [sg.Text("Dataset: ", font=("15")),
+                                   sg.In(size=(30, 2), enable_events=True, key="-DATASET-"),
+                                   sg.FilesBrowse('Select')], 
+                                  [sg.Button('Test Model', key="-TESTMODELDETAILS-")],
+                                  [sg.Text("Model File: ", font=("15")),
+                                   sg.In(size=(30, 2), enable_events=True, key="-MODEL-"),
                                    sg.FilesBrowse('Select')]
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
@@ -79,9 +81,11 @@ class CortusApplication:
                 modelWindow.close()
                 break
             if event == "-TRAINMODEL-" :
-                dataset   = values["-DATASET-"]
-                outFolder = values['-OUTFOLDER-']
-                model.CortusModel(dataset, outFolder)
+                dataset = values["-DATASET-"]
+                model.CortusModel(dataset)
+            if event == "-TESTMODELDETAILS-" :
+                loadedModel = values["-MODEL-"]
+                model.CortusModel(loadedModel)
 
 
     def createCsvViewerWindow(self, filename) :
@@ -231,29 +235,28 @@ class CortusApplication:
     def createStartupLayout(self) :
         modelManagementColumn = [ [sg.Text("Cortus Model Management")],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Load and View Model', key="-LOADMODEL-")], 
                                   [sg.Button('Create Model', key="-CREATEMODEL-")],
-                                ]
-        dataManagementColumn  = [ [sg.Text("Cortus Data Management")],
-                                  [sg.HorizontalSeparator()],
-                                  [sg.Button('Load and View CSV Dataset', key="-CREATECSVDATASET-")], 
-                                  [sg.Button('Create Dataset from DMP files', key="-LOADDMPPROCESSDATASET-")],
-                                  [sg.Button('View Stats', key="-VIEWSTATS-")]
+                                  [sg.Button('Load and View Model', key="-LOADMODEL-")], 
                                 ]
         analysisColumn        = [ [sg.Text("Cortus Analysis and Detection Management")],
                                   [sg.HorizontalSeparator()],
                                   [sg.Button('Analyse Process', key="-TESTPROCESS-")], 
                                   [sg.Button('Review recent analyses', key="-REVIEWANALYSIS-")]
                                 ]
+        dataManagementColumn  = [ [sg.Text("Cortus Data Management")],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATECSVDATASET-")], 
+                                  [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
+                                  [sg.Button('Analyse Created Dataset', key="-VIEWSTATS-")]
+                                ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Cortus Data Management", font=("40"))],
                                   [sg.Image(os.path.join(workingDirectory, 'resources\CortusLogo.png'), size=(200, 200), key='-IMAGE-')],
                                   [sg.HorizontalSeparator()],
                                   [sg.Column(modelManagementColumn, vertical_alignment='t'),
+                                   sg.Column(analysisColumn, vertical_alignment='t'),
                                    sg.VSeperator(),
-                                   sg.Column(dataManagementColumn, vertical_alignment='t'),
-                                   sg.VSeperator(),
-                                   sg.Column(analysisColumn, vertical_alignment='t')],
+                                   sg.Column(dataManagementColumn, vertical_alignment='t')],
                                   [sg.HorizontalSeparator()],
                                   [sg.Button('Exit')]
                                 ]
