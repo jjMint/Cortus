@@ -65,30 +65,30 @@ class CortusModel:
 
         svmInput = [
                     [sg.Text('Kernel Type', size=(15, 1))],    
-                    [sg.Radio('Linear', 'kernel', size=(12, 1),),   
-                     sg.Radio('Poly', 'kernel', size=(12, 1))],
-                    [sg.Radio('RBF', 'kernel', size=(12, 1)),   
-                     sg.Radio('sigmoid', 'kernel', size=(12, 1))],
+                    [sg.Radio('Linear', 'kernel', size=(12, 1), k='linear'),   
+                     sg.Radio('Poly', 'kernel', size=(12, 1), k='Poly')],
+                    [sg.Radio('RBF', 'kernel', size=(12, 1), k='RBF'),   
+                     sg.Radio('sigmoid', 'kernel', size=(12, 1), k='sigmoid')],
                     [sg.Text('Coef', size=(15, 1)), sg.In(default_text='0.0', size=(10, 1)),
                      sg.Text('Degree Poly Kernel', size=(15, 1)), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1)),]   
                    ]  
 
         knnInput = [
                     [sg.Text('Weights Type', size=(15, 1))],    
-                    [sg.Radio('Uniform', 'Weights', size=(12, 1), default=True),   
-                     sg.Radio('Distance', 'Weights', size=(12, 1))],
+                    [sg.Radio('Uniform', 'Weights', size=(12, 1), k='Uniform'),   
+                     sg.Radio('Distance', 'Weights', size=(12, 1), k='Distance')],
                     [sg.Text('Algorithm Type', size=(15, 1))],    
-                    [sg.Radio('Auto', 'Algorithm', size=(12, 1), default=True),   
-                     sg.Radio('Ball_tree', 'Algorithm', size=(12, 1))],
-                    [sg.Radio('Kd_tree', 'Algorithm', size=(12, 1), default=True),   
-                     sg.Radio('Brute', 'Algorithm', size=(12, 1))],
-                    [sg.Text('Number of Neighbours', size=(15, 1)), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1)),]
+                    [sg.Radio('Auto', 'Algorithm', size=(12, 1), k='Auto'),   
+                     sg.Radio('Ball_tree', 'Algorithm', size=(12, 1), k='Ball_tree')],
+                    [sg.Radio('Kd_tree', 'Algorithm', size=(12, 1), k='Kd_tree'),   
+                     sg.Radio('Brute', 'Algorithm', size=(12, 1), k='Brute')],
+                    [sg.Text('Number of Neighbours', size=(15, 1), k='Neighbours'), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1)),]
                    ]  
 
         optimalInput = [
                      [sg.Text('Optimised Model Type', size=(15, 1))],    
-                     [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVM-', enable_events=True),   
-                      sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True)], 
+                     [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVMO-', enable_events=True),   
+                      sg.Radio('KNN', 'model', size=(12, 1), k='-KNNO-', enable_events=True)], 
                     ]      
 
         layout = [
@@ -97,7 +97,7 @@ class CortusModel:
                   [sg.Text('Model Type', size=(15, 1))],      
                   [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVM-', enable_events=True),   
                    sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True)],
-                  [sg.Radio('Gausian', 'model', size=(12, 1), k='-GAUS-', enable_events=True),   
+                  [sg.Radio('Gausian', 'model', size=(12, 1), k='-OPT-', enable_events=True),   
                    sg.Radio('Ensemble', 'model', size=(12, 1))],   
                   [sg.HorizontalSeparator()],
                   [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-'), sg.T('SVM Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
@@ -134,11 +134,21 @@ class CortusModel:
                 window['-OPEN SEC3-'].update(self.SYMBOL_DOWN if opened3 else self.SYMBOL_UP)
                 window['-SEC3-'].update(visible=opened3)
             if event.startswith('CreateModel'):
-                model = values['model']
-                print(model)
+
+                modelParams = {}
+                if values['-SVM-'] :
+                    modelParams['modelType'] = "svm"
+                elif values['-KNN-'] :
+                    modelParams['modelType'] = "knn"
+                elif values['-OPT-'] :
+                    modelParams['modelType'] = "opt"
+
+                self.createModel(modelParams)
 
 
-    def createModel(self, dataset, parametersDict):
+
+
+    def createModel(self, parametersDict):
         logging.info("Training and Testing Model")
 
         label_encoder   = LabelEncoder()
@@ -153,18 +163,24 @@ class CortusModel:
         X_std_test = scaler.fit_transform(X_test)
         X_std_test = pca.fit_transform(X_std_test)
 
+        if (parametersDict['modelType']) == 'svm' :
+            self.svmModel(X_std_train, X_std_test, y_train, y_test )
+        if (parametersDict['modelType']) == 'knn' :
+            self.knnModel(X_std_train, X_std_test, y_train, y_test )
+        if (parametersDict['modelType']) == 'opt' :
+            self.optimisedModel(X_std_train, X_std_test, y_train, y_test )
+
 
     def svmModel(self, X_train, X_test, Y_train, Y_test) :
-
         svc = svm.SVC(kernel='rbf')
         model = svc.fit(X_train, Y_train)
         predicted_labels = svc.predict(X_test)
 
         logging.info("Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
+        self.plotResults(model, X_train, X_test, Y_train, Y_test)
 
 
     def knnModel(self, X_train, X_test, Y_train, Y_test) :
-
         knn = KNeighborsClassifier(n_neighbors=2)
         knn.fit(X_train, Y_train)
         predicted_labels = knn.predict(X_test)
@@ -172,7 +188,6 @@ class CortusModel:
 
 
     def optimisedModel(self, X_train, X_test, Y_train, Y_test) :
-
         svc = svm.SVC(kernel='rbf')
         model = svc.fit(X_train, Y_train)
         predicted_labels = svc.predict(X_test)
@@ -184,23 +199,23 @@ class CortusModel:
 
         # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
         # Solve for w3 (z)
-        z = lambda x,y: (-model.intercept_[0]-model.coef_[0][0]*x -model.coef_[0][1]*y) / model.coef_[0][2]
+        # z = lambda x,y: (-model.intercept_[0]-model.coef_[0][0]*x -model.coef_[0][1]*y) / model.coef_[0][2]
 
-        tmp = np.linspace(-5,5,30)
-        x,y = np.meshgrid(tmp,tmp)
+        # tmp = np.linspace(-5,5,30)
+        # x,y = np.meshgrid(tmp,tmp)
 
-        fig = plt.figure()
-        ax  = fig.add_subplot(111, projection='3d')
-        ax.plot3D(X_std_train[y_train==0,0], X_std_train[y_train==0,1], X_std_train[y_train==0,2],'ob')
-        ax.plot3D(X_std_train[y_train==1,0], X_std_train[y_train==1,1], X_std_train[y_train==1,2],'sr')
-        ax.plot_surface(x, y, z(x,y))
-        ax.view_init(30, 60)
-        plt.show()
+        # fig = plt.figure()
+        # ax  = fig.add_subplot(111, projection='3d')
+        # ax.plot3D(X_std_train[y_train==0,0], X_std_train[y_train==0,1], X_std_train[y_train==0,2],'ob')
+        # ax.plot3D(X_std_train[y_train==1,0], X_std_train[y_train==1,1], X_std_train[y_train==1,2],'sr')
+        # ax.plot_surface(x, y, z(x,y))
+        # ax.view_init(30, 60)
+        # plt.show()
 
         value=0.5
         width=0.25
         # Plot Decision Region using mlxtend's awesome plotting function
-        ax = plot_decision_regions(X=X_std_train, y=y_train, clf=model, legend=2)
+        ax = plot_decision_regions(X=X_train, y=Y_train, clf=model, legend=2)
 
         # Update plot object with X/Y axis labels and Figure Title
         plt.xlabel("PCA 1", size=14)
@@ -212,19 +227,19 @@ class CortusModel:
                 framealpha=0.3, scatterpoints=1)
         plt.show()
     
-        ax = plot_decision_regions(X_std_train, y_train, clf=model, filler_feature_values={2: value, 3:value, 4:value, 5:value},filler_feature_ranges={2: width, 3: width, 4:width, 5:width}, legend=2)# Adding axes annotations
+        # ax = plot_decision_regions(X_std_train, y_train, clf=model, filler_feature_values={2: value, 3:value, 4:value, 5:value},filler_feature_ranges={2: width, 3: width, 4:width, 5:width}, legend=2)# Adding axes annotations
 
-        plt.xlabel("PCA 1", size=14)
-        plt.ylabel("PCA 2", size=14)
-        plt.title('KNN Decision Region Boundary', size=16)
-        plt.title('Knn with K='+ str(2))
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles, 
-                ['Benign', 'Malware'], 
-                framealpha=0.3, scatterpoints=1)
-        plt.show()
+        # plt.xlabel("PCA 1", size=14)
+        # plt.ylabel("PCA 2", size=14)
+        # plt.title('KNN Decision Region Boundary', size=16)
+        # plt.title('Knn with K='+ str(2))
+        # handles, labels = ax.get_legend_handles_labels()
+        # ax.legend(handles, 
+        #         ['Benign', 'Malware'], 
+        #         framealpha=0.3, scatterpoints=1)
+        # plt.show()
 
-        plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
+        # plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
 
         
     def collapse(self, layout, key):
