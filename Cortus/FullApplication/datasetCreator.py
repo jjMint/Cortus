@@ -6,6 +6,7 @@
 # ------------------------------------------------------------------------------------------------------------------
 
 import logging
+import math
 import numpy as np
 import os
 import PySimpleGUI as sg
@@ -18,6 +19,7 @@ from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
+np.random.seed(0)
 
 # --------------------------------------------------------------------------------------------
 # // Utility Functions
@@ -156,21 +158,14 @@ class DataLoader :
         hashColumnLists = [ ('stringContentFull', 'stringHash'), ('sectionContentFull', 'sectionHash'), ('sectionSizeFull', 'sectionSizeHash'), 
                             ('sectionPermsFull', 'sectionPermsHash'), ('relocationContentFull', 'relocationHash'), ('importNameContentFull', 'importNameHash'), ('importLibContentFull', 'importLibHash')]
 
-        N_VECS = 3      # This many vectors.
-        N_DIMS = 128     # Vector dimensionality.
-        print(f"There are {N_VECS:,} vectors and each has {N_DIMS} dimensions.")
+        buckets = 600/450
+        plane  = math.ceil(np.log2(buckets))
+        planes = np.array([np.random.normal(size=(128, plane)) for _ in range(10)])
 
-        buckets = 300/150
-        plane = math.ceil(np.log2(buckets))
-
-        np.random.seed(0)
-        planes_l = np.array([np.random.normal(size=(N_DIMS, plane))
-                    for _ in range(10)])
-
-        
         # For each, create a hash, and add the relevant hash columns to the current dataset
         for seriesColumn in hashColumnLists :
-            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}_", 128)
+            logging.info(f"Hashing {seriesColumn[0]}")
+            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}_", 128, planes)
             dataset = pd.concat([dataset, hashBucketFrame], axis=1)
 
         # Drop the full content
@@ -179,40 +174,36 @@ class DataLoader :
         return dataset
 
 
-    def stringToMinhash(self, stringSeries, hashingPrefix, hashLength) :
+    def stringToMinhash(self, stringSeries, hashingPrefix, hashLength, planes) :
         minhashList = []
-        m = MinHash(num_perm=hashLength)
 
+        m = MinHash(num_perm=hashLength)
         for row in stringSeries :
             for s in row :
                 m.update(s.encode('utf8'))
             minhashList.append(m.digest().tolist())
            
-        for i in range(len(hashed)):
-            hashed[i] = np.expand_dims(hashed[i], axis=0)
-            print(bucket_value_of_vector(hashed[i], planes_l))
+        clusterBucketList = []
+        for i in range(len(minhashList)):
+            minhashList[i] = minhashList[i]
+            clusterBucketList.append(self.bucket_value_of_vector(minhashList[i], planes))
+        logging.info("Created Hash Cluster")
            
-        return pd.DataFrame(minhashList).add_prefix(hashingPrefix)
+        return pd.DataFrame(clusterBucketList).add_prefix(hashingPrefix)
 
     
-    def bucket_value_of_vector(v, planes):
+    def bucket_value_of_vector(self, v, planes):
         dot_product = np.dot(v, planes)
-        # assert dot_product.shape == (1, 10), dot_product.shape
-
-        # get the sign of the dot product (1,10) shaped vector
         sign_of_dot_product = np.sign(dot_product)
 
         h = sign_of_dot_product >= 0
-
         h = np.squeeze(h)
 
         hash_value = 0
-
         n_planes = planes.shape[0]
         for i in range(n_planes):
             hash_value += 2**i * h[i]
 
-        # cast hash_value as an integer
         hash_value = hash_value.astype(int)
 
         return hash_value

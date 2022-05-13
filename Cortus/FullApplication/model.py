@@ -146,14 +146,12 @@ class CortusModel:
                 self.createModel(modelParams)
 
 
-
-
     def createModel(self, parametersDict):
         logging.info("Training and Testing Model")
 
         label_encoder   = LabelEncoder()
         true_labels     = label_encoder.fit_transform(self.dataset_true_labels['processType'])
-        X_train, X_test, y_train, y_test = train_test_split(self.dataset, true_labels, test_size=0.3) # 70% training and 30% test
+        X_train, X_test, y_train, y_test = train_test_split(self.dataset, true_labels, test_size=0.3, random_state=43)  # 70% training and 30% test
 
         scaler = StandardScaler()
         pca = PCA(n_components = 2)

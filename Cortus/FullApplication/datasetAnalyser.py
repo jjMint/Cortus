@@ -13,12 +13,12 @@ class DatasetAnalyser :
     def __init__(self, dataset) :
         self.dataset = dataset
 
+        self.datasetLabels = self.dataset[['processType']]
 
-    def analyzeDataset(self, dataset, outfolder) :
+    def analyzeDataset(self, dataset) :
 
         label_encoder     = LabelEncoder()
-        true_labels       = label_encoder.fit_transform(self.dataset_true_labels['processType'])
-        datasetTextLabels = self.dataset[['processType']]
+        true_labels       = label_encoder.fit_transform(self.datasetLabels['processType'])
 
         feature_selector = SelectKBest(f_regression, k = "all")
         fit = feature_selector.fit(self.dataset, true_labels)

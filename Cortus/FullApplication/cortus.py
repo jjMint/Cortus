@@ -44,12 +44,48 @@ class CortusApplication:
     extractor   = None
     dataset     = None
 
+
     def handleCmdLineCommands(self) :
         logging.warning("Commmand Line Use is Deprecated")
         parser = argparse.ArgumentParser(description="Cortus Analyser")
         parser.add_argument('--createModel', dest='createModel', type=bool, help='Run the application to train a model')
         parser.add_argument('--createModel', dest='createModel', type=bool, help='Run the application to train a model')
         parser.add_argument('--createModel', dest='createModel', type=bool, help='Run the application to train a model')
+
+
+    def testProcessModel(self, modelFile, dmpFile) :
+        modelManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.Button('Train Model from Dataset', key="-TRAINMODEL-")],
+                                  [sg.Text("Dataset: ", font=("15")),
+                                   sg.In(size=(30, 2), enable_events=True, key="-DATASET-"),
+                                   sg.FilesBrowse('Select')], 
+                                  [sg.Button('Test Model', key="-TESTMODELDETAILS-")],
+                                  [sg.Text("Model File: ", font=("15")),
+                                   sg.In(size=(30, 2), enable_events=True, key="-MODEL-"),
+                                   sg.FilesBrowse('Select')]
+                                ]
+        layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
+                                  [sg.Text("Dataset Creation", font=("40"))],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.VSeperator(),
+                                   sg.Column(modelManagementColumn, vertical_alignment='t')],
+                                  [sg.HorizontalSeparator()],
+                                  [sg.Button('Exit')]
+                                ]
+
+        modelWindow = sg.Window("Cortus Malware Analyzer", layout, element_justification='c')
+        while True:
+            event, values = modelWindow.read()
+            if event == "Exit" or event == sg.WIN_CLOSED:
+                modelWindow.close()
+                break
+            if event == "-TRAINMODEL-" :
+                dataset = values["-DATASET-"]
+                model.CortusModel(dataset)
+            if event == "-TESTMODELDETAILS-" :
+                loadedModel = values["-MODEL-"]
+                model.CortusModel(loadedModel)
 
 
     def createModel(self) :
@@ -74,7 +110,6 @@ class CortusApplication:
                                 ]
 
         modelWindow = sg.Window("Cortus Malware Analyzer", layout, element_justification='c')
-
         while True:
             event, values = modelWindow.read()
             if event == "Exit" or event == sg.WIN_CLOSED:
@@ -92,7 +127,7 @@ class CortusApplication:
         try:
             data = []
             header_list = []
-            df = pd.read_csv(filename, sep=',', engine='python', header=None)
+            df = pd.read_pickle(filename)
             data = df.values.tolist() 
             header_list = df.iloc[0].tolist()
             data = df[1:].values.tolist()
@@ -109,7 +144,6 @@ class CortusApplication:
                 event, values = frameWindow.read()
                 if event == "Exit" or event == sg.WIN_CLOSED:
                     break
-
         except Exception as e:
             logging.error(e)
             pass
@@ -118,23 +152,22 @@ class CortusApplication:
     def createDataCSVSetWindow(self) :
         dataManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('View selected Process CSV', key="-LOADCSVDATASET-")], 
+                                  [sg.Button('View selected Process Frame', key="-LOADPKLDATASET-")], 
                                   [sg.Button('View Stats', key="-VIEWSTATS-")],
                                   [sg.Button('Create Dataset', key='-CREATEDATASET-'),
                                    sg.In(size=(30, 2), enable_events=True, key="-OUTFOLDER-"),
                                    sg.FolderBrowse()]
                                 ]
-        ben_file_list_column  = [ [sg.Text("CSV Benign Folder"),
+        ben_file_list_column  = [ [sg.Text("PKL Benign Folder"),
                                    sg.In(size=(30, 2), enable_events=True, key="-BENFOLDER-"),
                                    sg.FolderBrowse(),],
                                   [sg.Listbox(values=[], enable_events=True, size=(60, 20), key="-BENFILELIST-")]
                                 ]
-        mal_file_list_column  = [ [sg.Text("CSV Malicious Folder"),
+        mal_file_list_column  = [ [sg.Text("PKL Malicious Folder"),
                                    sg.In(size=(30, 2), enable_events=True, key="-MALFOLDER-"),
                                    sg.FolderBrowse(),],
                                   [sg.Listbox(values=[], enable_events=True, size=(60, 20), key="-MALFILELIST-")]
                                 ]
-
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Dataset Creation", font=("40"))],
                                   [sg.HorizontalSeparator()],
@@ -149,7 +182,6 @@ class CortusApplication:
                                 ]
 
         csvWindow = sg.Window("Cortus Malware Analyzer", layout, element_justification='c')
-
         while True:
             event, values = csvWindow.read()
             if event == "Exit" or event == sg.WIN_CLOSED:
@@ -191,7 +223,7 @@ class CortusApplication:
                                    sg.In(size=(30, 2), enable_events=True, key="-DMPFOLDER-"),
                                    sg.FolderBrowse(),],
                                   [sg.Listbox(values=[], enable_events=True, size=(60, 20), key="-FILELIST-")],
-                                  [sg.Button('Extract Features from CSV\'s', key="-EXTRACTFEATURES-"),
+                                  [sg.Button('Extract Features from DMP\'s', key="-EXTRACTFEATURES-"),
                                    sg.Text("Process Type:", key="-PROCESSTYPE-"),
                                    sg.Checkbox(text='Benign', key="-PROCESSTYPEBEN-"),
                                    sg.Checkbox(text='Malicious', key="-PROCESSTYPEMAL-")],
@@ -210,7 +242,6 @@ class CortusApplication:
                                 ]
 
         dmpWindow = sg.Window("Cortus Malware Analyzer", layout, element_justification='c')
-
         while True:
             event, values = dmpWindow.read()
             if event == "Exit" or event == sg.WIN_CLOSED:
@@ -226,10 +257,10 @@ class CortusApplication:
                 fnames = [f for f in file_list if os.path.isfile(os.path.join(folder, f)) and f.lower().endswith((".dmp"))]
                 dmpWindow["-FILELIST-"].update(fnames)
             if event == "-EXTRACTFEATURES-" :
-                infolder = values["-DMPFOLDER-"]
-                outfolder = values['-OUTFOLDER-']
+                infolder    = values["-DMPFOLDER-"]
+                outfolder   = values['-OUTFOLDER-']
                 processType = values["-PROCESSTYPEBEN-"] if not None else values["-PROCESSTYPEMAL-"]
-                featureExtractor.MemoryFeatureExtractor(folder, outfolder, processType)
+                featureExtractor.MemoryFeatureExtractor(infolder, outfolder, processType)
 
 
     def createStartupLayout(self) :
@@ -241,13 +272,13 @@ class CortusApplication:
         analysisColumn        = [ [sg.Text("Cortus Analysis and Detection Management")],
                                   [sg.HorizontalSeparator()],
                                   [sg.Button('Analyse Process', key="-TESTPROCESS-")], 
-                                  [sg.Button('Review recent analyses', key="-REVIEWANALYSIS-")]
+                                  [sg.Button('Review Recent Analyses', key="-REVIEWANALYSIS-")]
                                 ]
         dataManagementColumn  = [ [sg.Text("Cortus Data Management")],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATECSVDATASET-")], 
+                                  [sg.Button('Analyse Created Dataset', key="-VIEWSTATS-")],
                                   [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
-                                  [sg.Button('Analyse Created Dataset', key="-VIEWSTATS-")]
+                                  [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATECSVDATASET-")]
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Cortus Data Management", font=("40"))],
