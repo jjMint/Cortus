@@ -182,9 +182,11 @@ class CortusModel:
 
     def knnModel(self, X_train, X_test, Y_train, Y_test) :
         knn = KNeighborsClassifier(n_neighbors=2)
-        knn.fit(X_train, Y_train)
+        model = knn.fit(X_train, Y_train)
         predicted_labels = knn.predict(X_test)
+
         logging.info("KNN Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
+        self.plotResults(model, X_train, X_test, Y_train, Y_test)
 
 
     def optimisedModel(self, X_train, X_test, Y_train, Y_test) :
