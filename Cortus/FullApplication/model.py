@@ -68,8 +68,8 @@ class CortusModelCreator:
                      sg.Radio('Poly', 'kernel', size=(12, 1), k='Poly')],
                     [sg.Radio('RBF', 'kernel', size=(12, 1), k='RBF'),   
                      sg.Radio('sigmoid', 'kernel', size=(12, 1), k='sigmoid')],
-                    [sg.Text('Coef', size=(15, 1)), sg.In(default_text='0.0', size=(10, 1)),
-                     sg.Text('Degree Poly Kernel', size=(15, 1)), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1)),]   
+                    [sg.Text('Coef', size=(15, 1)), sg.In(default_text='0.5', size=(10, 1), k='coef'),
+                     sg.Text('Degree Poly Kernel', size=(15, 1)), sg.Spin(values=[i for i in range(0, 1000)], initial_value=3, size=(6, 1), k='polyAmount'),]   
                    ]  
 
         knnInput = [
@@ -81,7 +81,7 @@ class CortusModelCreator:
                      sg.Radio('Ball_tree', 'Algorithm', size=(12, 1), k='Ball_tree')],
                     [sg.Radio('Kd_tree', 'Algorithm', size=(12, 1), k='Kd_tree'),   
                      sg.Radio('Brute', 'Algorithm', size=(12, 1), k='Brute')],
-                    [sg.Text('Number of Neighbours', size=(15, 1), k='Neighbours'), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1)),]
+                    [sg.Text('Number of Neighbours', size=(15, 1), k='Neighbours'), sg.Spin(values=[i for i in range(0, 1000)], initial_value=0, size=(6, 1), k='degree'),]
                    ]  
 
         optimalInput = [
@@ -96,7 +96,7 @@ class CortusModelCreator:
                   [sg.Text('Model Type', size=(15, 1))],      
                   [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVM-', enable_events=True),   
                    sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True)],
-                  [sg.Radio('Optimised', 'model', size=(12, 1), k='-OPT-', enable_events=True)],   
+                  [sg.Radio('Optimised', 'model', size=(20, 1), k='-OPT-', enable_events=True)],   
                   [sg.HorizontalSeparator()],
                   [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-'), sg.T('SVM Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
                   [self.collapse(svmInput, '-SEC1-')],
@@ -133,16 +133,46 @@ class CortusModelCreator:
                 window['-OPEN SEC3-'].update(self.SYMBOL_DOWN if opened3 else self.SYMBOL_UP)
                 window['-SEC3-'].update(visible=opened3)
             if event.startswith('CreateModel'):
-
                 modelParams = {}
                 if values['-SVM-'] :
                     modelParams['modelType'] = "svm"
+                    modelParams['coef'] = values['coef']
+                    if values['linear'] == 1:
+                        modelParams['kernelType'] = 'linear'
+                    elif values['Poly'] == 1:
+                        modelParams['kernelType'] = 'poly'
+                        modelParams['polyAmount'] =  values['polyAmount']
+                    elif values['RBF'] == 1:
+                        modelParams['kernelType'] = 'rbf'
+                    elif values['sigmoid'] == 1:
+                        modelParams['kernelType'] = 'poly'
+                    self.createModel(modelParams)
+
                 elif values['-KNN-'] :
                     modelParams['modelType'] = "knn"
+                    modelParams['degree'] = values['degree']
+                    if values['Uniform'] == 1:
+                        modelParams['weights'] = 'uniform'
+                    elif values['Distance'] == 1:
+                        modelParams['weights'] = 'distance'
+
+                    if values['Auto'] == 1:
+                        modelParams['algo'] = 'auto'
+                    elif values['Ball_tree'] == 1:
+                        modelParams['algo'] = 'poly'
+                    elif values['Kd_tree'] == 1:
+                        modelParams['algo'] = 'kd_tree'
+                    elif values['Brute'] == 1:
+                        modelParams['algo'] = 'brute'
+                    self.createModel(modelParams)
+
                 elif values['-OPT-'] :
                     modelParams['modelType'] = "opt"
-
-                self.createModel(modelParams)
+                    if values['-KNNO-'] :
+                        modelParams['optType'] = 'knn'
+                    elif values['-SVMO-'] :
+                        modelParams['optType'] = 'svm'
+                    self.createModel(modelParams)
 
 
     def createModel(self, parametersDict):
@@ -161,48 +191,49 @@ class CortusModelCreator:
         X_std_test = pca.fit_transform(X_std_test)
 
         if (parametersDict['modelType']) == 'svm' :
-            self.svmModel(X_std_train, X_std_test, y_train, y_test )
+            self.svmModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
         if (parametersDict['modelType']) == 'knn' :
-            self.knnModel(X_std_train, X_std_test, y_train, y_test )
+            self.knnModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
         if (parametersDict['modelType']) == 'opt' :
-            self.optimisedModel(X_std_train, X_std_test, y_train, y_test )
+            self.optimisedModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
 
 
-    def svmModel(self, X_train, X_test, Y_train, Y_test) :
+    def svmModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
         resultsDict = {}
 
-        svc = svm.SVC(kernel='linear')
+        if 'polyAmount' in parametersDict :
+            svc = svm.SVC(kernel=parametersDict['kernelType'], coef0=float(parametersDict['coef']), degree=float(parametersDict['polyAmount']))
+        else :
+            svc = svm.SVC(kernel=parametersDict['kernelType'], coef0=float(parametersDict['coef']))
         model = svc.fit(X_train, Y_train)
         predicted_labels = model.predict(X_test)
         logging.info("SVM Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "SVM")
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"SVM with Kernel: {parametersDict['kernelType']}")
         self.saveModel('resources\\Cortus_SVMModel.pkl', model)
 
         self.resultsLayout(resultsDict)
 
 
-    def knnModel(self, X_train, X_test, Y_train, Y_test) :
+    def knnModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
         resultsDict = {}
 
-        knn = KNeighborsClassifier(n_neighbors=2)
+        knn = KNeighborsClassifier(weights=parametersDict['weights'], algorithm=parametersDict['algo'], n_neighbors=int(parametersDict['degree']))
         model = knn.fit(X_train, Y_train)
         predicted_labels = model.predict(X_test)
         logging.info("KNN Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "KNN")
         self.saveModel('resources\\Cortus_KNNModel.pkl', model)
 
         self.resultsLayout(resultsDict)
 
 
-    def optimisedModel(self, X_train, X_test, Y_train, Y_test) :
+    def optimisedModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
         resultsDict = {}
 
         svc = svm.SVC(kernel='rbf')
@@ -212,7 +243,6 @@ class CortusModelCreator:
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "Optimal")
         self.saveModel('resources\\Cortus_OPTModel.pkl', model)
 
@@ -237,13 +267,21 @@ class CortusModelCreator:
         ax2.set_title("Precision Recall Curve")
 
         # -------------Decision Region----------------------#
+        scatter_kwargs = {'s': 120, 'edgecolor': None, 'alpha': 0.7}
+        contourf_kwargs = {'alpha': 0.2}
+        scatter_highlight_kwargs = {'s': 120, 'label': 'Test data', 'alpha': 0.7}
+        # Plotting decision regions
         value=0.5
         width=0.25
         # Plot Decision Region using mlxtend's awesome plotting function
-        ax3 = plot_decision_regions(X=X_train, y=Y_train, 
-                                    filler_feature_values={2: value, 3:value, 4:value, 5:value},
-                                    filler_feature_ranges={2: width, 3: width, 4:width, 5:width},
-                                    clf=model, legend=2, ax=ax3)
+        ax3 = plot_decision_regions(X=X_train, y=Y_train,
+                                    X_highlight=X_test,
+                                    # filler_feature_values={2: value, 3: value}, 
+                                    # filler_feature_ranges={2: width, 3: value}, 
+                                    clf=model, legend=2, ax=ax3,
+                                    scatter_kwargs=scatter_kwargs,
+                                    contourf_kwargs=contourf_kwargs,
+                                    scatter_highlight_kwargs=scatter_highlight_kwargs)
 
         # Update plot object with X/Y axis labels and Figure Title
         plt.xlabel("PCA 1", size=14)
@@ -251,7 +289,7 @@ class CortusModelCreator:
         plt.title(f'{modelType} Decision Region Boundary', size=16)
         handles, labels = ax3.get_legend_handles_labels()
         ax3.legend(handles, 
-                ['Benign', 'Malware'], 
+                ['Benign', 'Malware', 'TestData'], 
                 framealpha=0.3, scatterpoints=1)
 
         plt.show(block=False)
@@ -272,12 +310,13 @@ class CortusModelCreator:
                         [sg.Button('Exit')]
                        ]    
 
-        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), ) 
+        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), size=(500, 500) ) 
         while True:
             event, values = window.read()
             if event == "Exit" or event == sg.WIN_CLOSED:
                 window.close()
                 break
+
 
     def saveModel(self, modelName, model) :
         filename = os.path.join(workingDirectory, modelName)
