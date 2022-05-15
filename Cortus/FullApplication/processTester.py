@@ -42,7 +42,7 @@ class CortusModelTester:
                   [sg.Submit('CreateModel'), sg.Button('Exit')]
                  ]    
 
-        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), size=(1800, 400)) 
+        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12)) 
 
         # State operators for tabs
         opened1, opened2, opened3 = False, False, False

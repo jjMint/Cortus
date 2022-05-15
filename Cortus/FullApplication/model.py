@@ -19,7 +19,7 @@ import sys
 import seaborn as sns
 
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix, precision_recall_curve
+from sklearn.metrics import accuracy_score, average_precision_score, plot_confusion_matrix, plot_precision_recall_curve
 from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, MaxAbsScaler
 from sklearn.model_selection import train_test_split
 from sklearn import svm
@@ -104,7 +104,7 @@ class CortusModelCreator:
                   [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC2-'), sg.T('KNN Parameters', enable_events=True, text_color='white', k='-OPEN SEC2-TEXT')],
                   [self.collapse(knnInput, '-SEC2-')],
                   [sg.HorizontalSeparator()],
-                  [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC3-'), sg.T('Gaus Parameters', enable_events=True, text_color='white', k='-OPEN SEC3-TEXT')],
+                  [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC3-'), sg.T('Optimal Parameters', enable_events=True, text_color='white', k='-OPEN SEC3-TEXT')],
                   [self.collapse(optimalInput, '-SEC3-')],
                   [sg.HorizontalSeparator()],
                   [sg.Submit('CreateModel'), sg.Button('Exit')]
@@ -178,10 +178,8 @@ class CortusModelCreator:
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
-        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
 
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, "SVM")
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "SVM")
         self.saveModel('resources\\Cortus_SVMModel.pkl', model)
 
         self.resultsLayout(resultsDict)
@@ -197,10 +195,8 @@ class CortusModelCreator:
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
-        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
 
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, "KNN")
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "KNN")
         self.saveModel('resources\\Cortus_KNNModel.pkl', model)
 
         self.resultsLayout(resultsDict)
@@ -216,67 +212,65 @@ class CortusModelCreator:
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
-        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
 
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, "Optimal")
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "Optimal")
         self.saveModel('resources\\Cortus_OPTModel.pkl', model)
 
         self.resultsLayout(resultsDict)
 
 
-    def plotResults(self, model, X_train, X_test, Y_train, Y_test, modelType) :
+    def plotResults(self, model, X_train, X_test, Y_train, Y_test, predicted_labels, modelType) :
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=(20,10))
+        fig.suptitle('Model Results and Analysis', fontsize=16)
+
+        # -------------Confusion and Precision Recall Region----------------------#
+        #Create a figure object
+        plot_confusion_matrix(model, X_test, Y_test, ax=ax1)
+
+        ax1.set_title("Confusion Matrix")
+        ax1.set_xlabel('Predicted labels')
+        ax1.set_ylabel('True labels'); 
+        ax1.xaxis.set_ticklabels(['Benign', 'Malware']) 
+        ax1.yaxis.set_ticklabels(['Benign', 'Malware'])
+
+        plot_precision_recall_curve(model, X_test, Y_test, ax=ax2)
+        ax2.set_title("Precision Recall Curve")
+
+        # -------------Decision Region----------------------#
         value=0.5
         width=0.25
         # Plot Decision Region using mlxtend's awesome plotting function
-        ax = plot_decision_regions(X=X_train, y=Y_train, 
-                                    filler_feature_values={2: value, 3:value, 4:value, 5:value},filler_feature_ranges={2: width, 3: width, 4:width, 5:width},
-                                    clf=model, legend=2)
+        ax3 = plot_decision_regions(X=X_train, y=Y_train, 
+                                    filler_feature_values={2: value, 3:value, 4:value, 5:value},
+                                    filler_feature_ranges={2: width, 3: width, 4:width, 5:width},
+                                    clf=model, legend=2, ax=ax3)
 
-                                    
         # Update plot object with X/Y axis labels and Figure Title
         plt.xlabel("PCA 1", size=14)
         plt.ylabel("PCA 2", size=14)
         plt.title(f'{modelType} Decision Region Boundary', size=16)
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles, 
+        handles, labels = ax3.get_legend_handles_labels()
+        ax3.legend(handles, 
                 ['Benign', 'Malware'], 
                 framealpha=0.3, scatterpoints=1)
 
         plt.show(block=False)
         plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
-        # plt.clf()
+
 
     def resultsLayout(self, resultsDict):
         resultsInput = [
                         [sg.Text('Test Set Results', font=60)], 
                         [sg.HorizontalSeparator()],   
-                        [sg.Text(f"Test Set Accuracy: {resultsDict['Accuracy']}")],
-                        [sg.Text(f"Test Set Precision: {resultsDict['Average Precision']}")],
+                        [sg.Text(f"Test Set Accuracy: {round(resultsDict['Accuracy'], 4)}")],
+                        [sg.Text(f"Test Set Precision: {round(resultsDict['Average Precision'], 4)}")],
                        ]  
-        layout = [
-                  [sg.Text('Model Creation Results', font=('Helvetica', 16))],
-                  [sg.HorizontalSeparator()],
-                  [resultsInput],
-                  [sg.Button('Exit')]
-                 ]    
-
-        [sg.Text(f"Test Set Matrix: {resultsDict['Confusion Matrix']}")],
-        [sg.Text(f"Test Set Precision Recall: {resultsDict['PrecisionRecallC']}")]
-
-        ax = sns.heatmap(cf_matrix/np.sum(cf_matrix), annot=True, 
-            fmt='.2%', cmap='Blues')
-
-ax.set_title('Seaborn Confusion Matrix with labels\n\n');
-ax.set_xlabel('\nPredicted Values')
-ax.set_ylabel('Actual Values ');
-
-## Ticket labels - List must be in alphabetical order
-ax.xaxis.set_ticklabels(['False','True'])
-ax.yaxis.set_ticklabels(['False','True'])
-
-## Display the visualization of the Confusion Matrix.
-plt.show()
+        layout =       [
+                        [sg.Text('Model Creation Results', font=('Helvetica', 16))],
+                        [sg.HorizontalSeparator()],
+                        [resultsInput],
+                        [sg.Button('Exit')]
+                       ]    
 
         window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), ) 
         while True:
