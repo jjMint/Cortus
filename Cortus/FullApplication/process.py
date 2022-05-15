@@ -28,9 +28,10 @@ class Process :
     importFeatures      = None
     slackFeatures       = None
 
-    def __init__(self, processName, processType):
+    def __init__(self, processName, processType=None):
         self.processName = processName
-        self.processType = processType
+        if processType == None:
+            self.processType = "Unknown"
 
 #--------------------------------------------------------------------------------------------
 # Process Setters

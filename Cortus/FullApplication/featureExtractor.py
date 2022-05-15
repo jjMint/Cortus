@@ -5,14 +5,11 @@
 # Process Memory Feature Extractor class that defines the process of extracting features using radare2
 # ------------------------------------------------------------------------------------------------------------------
 
-import json
 import logging
-import numpy as np
 import os
 import pandas as pd
-import pprint
+import pickle
 import r2pipe
-import threading
 import sys
 
 from process import Process
@@ -43,14 +40,66 @@ def enablePrint():
 class MemoryFeatureExtractor :
 
 
-    def __init__(self, inputFolder, outputFolder, processType) :
-        self.bulkExtractor(inputFolder, outputFolder, processType)
-
+    def __init__(self, inputFolder=None, outputFolder=None, processType=None, flag=None, inputFile=None) :
+        if flag == None :
+            self.bulkExtractor(inputFolder, outputFolder, processType)
+        elif flag == "Single" and inputFile is not None:
+            return self.singleExtractor(inputFile)
+            
 
     def callback(loop, callback_event):
         print("Stopping loop")
         loop.stop()
         callback_event.set()
+
+    def extractTestProcess(self, file) :
+
+        dumpName = os.fsdecode(file)
+        logging.info("Analysing File: " + str(dumpName))
+        dumpPath = os.path.join(os.fsdecode(file))
+
+        process = Process("{}_{}".format(dumpName, "Unknown"))
+        try :
+            r2DumpFile = r2pipe.open(str(dumpPath))
+        except Exception as e:
+            print(e)
+            logging.error("Failed to extract features from file: {}".format(dumpName))
+
+        # Collect all relevant feature sets for the process dump
+        # -------------------------------------------------------------------------------------
+        # Due to the nature of the memory dumps, its entirely possible that the dump is missing
+        # components we are trying to extract, as such we need to "try", during testing only the header results in this occuring
+
+        try :
+            headerFeatures                                  = self.createHeaderFeatures(r2DumpFile)
+        except:
+            logging.warning("Failed to extract header features")
+            pass
+        # registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+        sectionFeatures                                     = self.createSectionFeatures(r2DumpFile)
+        flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
+        entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
+        relocationFeatures                                  = self.createRelocationFeatures(r2DumpFile)
+        stringsFeatures                                     = self.createStringFeatures(r2DumpFile)
+        importFeatures                                      = self.createImportsFeatures(r2DumpFile)
+        slackFeatures                                       = self.createSlackFeatures(r2DumpFile)
+
+        # Create the process object per dump and write to to disk
+        try :
+            process.setHeaderFeatures(headerFeatures)
+            # process.setRegistryFeatures(registryFeatures)
+            process.setSectionFeatures(sectionFeatures)
+            process.setFlagFeatures(flagFeatures)
+            process.setEntryPointFeatures(entryPointFeatures)
+            process.setRelocationFeatures(relocationFeatures)
+            process.setStringFeatures(stringsFeatures)
+            process.setImportFeatures(importFeatures)
+            process.setSlackFeatures(slackFeatures)
+        except :
+            logging.warning("Failed to set a feature for the analysed proccess, could be reduction in quality")
+
+        r2DumpFile.quit()
+        return  process.getProcessFeatureTable()
 
 
     def createProcessList(self, inputFolder, outputFolder, processType) :
@@ -109,8 +158,8 @@ class MemoryFeatureExtractor :
             r2DumpFile.quit()
 
 
-    def singleExtractor(self, file, outputDirectory, type) :
-        self.createProcessList(file, outputDirectory, type)
+    def singleExtractor(self, file) :
+        return self.extractTestProcess(file)
         
 
     def bulkExtractor(self, inputFolder, outputFolder, processType) :

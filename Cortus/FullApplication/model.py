@@ -13,12 +13,13 @@ import numpy as np
 import logging
 import os
 import pandas as pd
+import pickle
 import PySimpleGUI as sg
 import sys
 import seaborn as sns
 
 from sklearn.decomposition import PCA
-from sklearn.metrics import silhouette_score, adjusted_rand_score, accuracy_score
+from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix, precision_recall_curve
 from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, MaxAbsScaler
 from sklearn.model_selection import train_test_split
 from sklearn import svm
@@ -31,7 +32,7 @@ workingDirectory = os.path.dirname(os.path.abspath(__file__))
 iconImg = os.path.join(workingDirectory, 'resources\CortusLogoTask.png')
 
 
-class CortusModel:
+class CortusModelCreator:
     # Define the model, dataset and outpath for saving
     #-- Options and Built Models --
     model             = None
@@ -61,8 +62,6 @@ class CortusModel:
 
 
     def createModelLayout(self) :
-        # sg.set_options(text_justification='right')      
-
         svmInput = [
                     [sg.Text('Kernel Type', size=(15, 1))],    
                     [sg.Radio('Linear', 'kernel', size=(12, 1), k='linear'),   
@@ -97,8 +96,7 @@ class CortusModel:
                   [sg.Text('Model Type', size=(15, 1))],      
                   [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVM-', enable_events=True),   
                    sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True)],
-                  [sg.Radio('Gausian', 'model', size=(12, 1), k='-OPT-', enable_events=True),   
-                   sg.Radio('Ensemble', 'model', size=(12, 1))],   
+                  [sg.Radio('Optimised', 'model', size=(12, 1), k='-OPT-', enable_events=True)],   
                   [sg.HorizontalSeparator()],
                   [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-'), sg.T('SVM Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
                   [self.collapse(svmInput, '-SEC1-')],
@@ -114,6 +112,7 @@ class CortusModel:
 
         window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12)) 
 
+        # State operators for tabs
         opened1, opened2, opened3 = False, False, False
 
         while True:
@@ -170,76 +169,126 @@ class CortusModel:
 
 
     def svmModel(self, X_train, X_test, Y_train, Y_test) :
-        svc = svm.SVC(kernel='rbf')
-        model = svc.fit(X_train, Y_train)
-        predicted_labels = svc.predict(X_test)
+        resultsDict = {}
 
-        logging.info("Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
-        self.plotResults(model, X_train, X_test, Y_train, Y_test)
+        svc = svm.SVC(kernel='linear')
+        model = svc.fit(X_train, Y_train)
+        predicted_labels = model.predict(X_test)
+        logging.info("SVM Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
+
+        resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
+        resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
+        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
+        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
+
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, "SVM")
+        self.saveModel('resources\\Cortus_SVMModel.pkl', model)
+
+        self.resultsLayout(resultsDict)
 
 
     def knnModel(self, X_train, X_test, Y_train, Y_test) :
+        resultsDict = {}
+
         knn = KNeighborsClassifier(n_neighbors=2)
         model = knn.fit(X_train, Y_train)
-        predicted_labels = knn.predict(X_test)
-
+        predicted_labels = model.predict(X_test)
         logging.info("KNN Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
-        self.plotResults(model, X_train, X_test, Y_train, Y_test)
+
+        resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
+        resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
+        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
+        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
+
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, "KNN")
+        self.saveModel('resources\\Cortus_KNNModel.pkl', model)
+
+        self.resultsLayout(resultsDict)
 
 
     def optimisedModel(self, X_train, X_test, Y_train, Y_test) :
+        resultsDict = {}
+
         svc = svm.SVC(kernel='rbf')
         model = svc.fit(X_train, Y_train)
-        predicted_labels = svc.predict(X_test)
+        predicted_labels = model.predict(X_test)
+        logging.info("Opt Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
-        logging.info("Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
+        resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
+        resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
+        resultsDict['Confusion Matrix']  = confusion_matrix(Y_test, predicted_labels)
+        resultsDict['PrecisionRecallC']  = precision_recall_curve(Y_test, predicted_labels)
+
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, "Optimal")
+        self.saveModel('resources\\Cortus_OPTModel.pkl', model)
+
+        self.resultsLayout(resultsDict)
 
 
-    def plotResults(self, model, X_train, X_test, Y_train, Y_test) :
-
-        # The equation of the separating plane is given by all x so that np.dot(svc.coef_[0], x) + b = 0.
-        # Solve for w3 (z)
-        # z = lambda x,y: (-model.intercept_[0]-model.coef_[0][0]*x -model.coef_[0][1]*y) / model.coef_[0][2]
-
-        # tmp = np.linspace(-5,5,30)
-        # x,y = np.meshgrid(tmp,tmp)
-
-        # fig = plt.figure()
-        # ax  = fig.add_subplot(111, projection='3d')
-        # ax.plot3D(X_std_train[y_train==0,0], X_std_train[y_train==0,1], X_std_train[y_train==0,2],'ob')
-        # ax.plot3D(X_std_train[y_train==1,0], X_std_train[y_train==1,1], X_std_train[y_train==1,2],'sr')
-        # ax.plot_surface(x, y, z(x,y))
-        # ax.view_init(30, 60)
-        # plt.show()
-
+    def plotResults(self, model, X_train, X_test, Y_train, Y_test, modelType) :
         value=0.5
         width=0.25
         # Plot Decision Region using mlxtend's awesome plotting function
-        ax = plot_decision_regions(X=X_train, y=Y_train, clf=model, legend=2)
+        ax = plot_decision_regions(X=X_train, y=Y_train, 
+                                    filler_feature_values={2: value, 3:value, 4:value, 5:value},filler_feature_ranges={2: width, 3: width, 4:width, 5:width},
+                                    clf=model, legend=2)
 
+                                    
         # Update plot object with X/Y axis labels and Figure Title
         plt.xlabel("PCA 1", size=14)
         plt.ylabel("PCA 2", size=14)
-        plt.title('SVM Decision Region Boundary', size=16)
+        plt.title(f'{modelType} Decision Region Boundary', size=16)
         handles, labels = ax.get_legend_handles_labels()
         ax.legend(handles, 
                 ['Benign', 'Malware'], 
                 framealpha=0.3, scatterpoints=1)
-        plt.show()
-    
-        # ax = plot_decision_regions(X_std_train, y_train, clf=model, filler_feature_values={2: value, 3:value, 4:value, 5:value},filler_feature_ranges={2: width, 3: width, 4:width, 5:width}, legend=2)# Adding axes annotations
 
-        # plt.xlabel("PCA 1", size=14)
-        # plt.ylabel("PCA 2", size=14)
-        # plt.title('KNN Decision Region Boundary', size=16)
-        # plt.title('Knn with K='+ str(2))
-        # handles, labels = ax.get_legend_handles_labels()
-        # ax.legend(handles, 
-        #         ['Benign', 'Malware'], 
-        #         framealpha=0.3, scatterpoints=1)
-        # plt.show()
+        plt.show(block=False)
+        plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
+        # plt.clf()
 
-        # plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
+    def resultsLayout(self, resultsDict):
+        resultsInput = [
+                        [sg.Text('Test Set Results', font=60)], 
+                        [sg.HorizontalSeparator()],   
+                        [sg.Text(f"Test Set Accuracy: {resultsDict['Accuracy']}")],
+                        [sg.Text(f"Test Set Precision: {resultsDict['Average Precision']}")],
+                       ]  
+        layout = [
+                  [sg.Text('Model Creation Results', font=('Helvetica', 16))],
+                  [sg.HorizontalSeparator()],
+                  [resultsInput],
+                  [sg.Button('Exit')]
+                 ]    
+
+        [sg.Text(f"Test Set Matrix: {resultsDict['Confusion Matrix']}")],
+        [sg.Text(f"Test Set Precision Recall: {resultsDict['PrecisionRecallC']}")]
+
+        ax = sns.heatmap(cf_matrix/np.sum(cf_matrix), annot=True, 
+            fmt='.2%', cmap='Blues')
+
+ax.set_title('Seaborn Confusion Matrix with labels\n\n');
+ax.set_xlabel('\nPredicted Values')
+ax.set_ylabel('Actual Values ');
+
+## Ticket labels - List must be in alphabetical order
+ax.xaxis.set_ticklabels(['False','True'])
+ax.yaxis.set_ticklabels(['False','True'])
+
+## Display the visualization of the Confusion Matrix.
+plt.show()
+
+        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), ) 
+        while True:
+            event, values = window.read()
+            if event == "Exit" or event == sg.WIN_CLOSED:
+                window.close()
+                break
+
+    def saveModel(self, modelName, model) :
+        filename = os.path.join(workingDirectory, modelName)
+        with open(filename, 'wb') as modelFile:
+            pickle.dump(model, modelFile)
 
         
     def collapse(self, layout, key):
