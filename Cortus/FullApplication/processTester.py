@@ -11,6 +11,8 @@ import PySimpleGUI as sg
 import sys
 import seaborn as sns
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
@@ -29,13 +31,20 @@ class CortusModelTester:
         with open(testModel, 'rb') as modelFile:
             self.model = pickle.load(modelFile)
 
-        self.processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single")
-        self.processFile = datasetCreator.DataLoader(self.processFile, flag="Single")
+        scaler = StandardScaler()
+        pca = PCA(n_components = 2)
+
+        self.processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single").getTestProcess()
+        self.processFile = datasetCreator.DataLoader(singleFrame=self.processFile, flag="Single").getTestProcess()
 
         self.processFile = self.processFile.drop(['processType'], 1)
         self.processFile = self.processFile[self.processFile.T[self.processFile.dtypes!=np.object].index]
+        print(self.processFile)
 
-        predicted_labels = self.model.predict(self.processFile)
+        X_test = scaler.transform(self.processFile)
+        X_test = pca.transform(X_test)
+                
+        predicted_labels = self.model.predict(X_test)
         logging.info(predicted_labels)
 
         # self.createModelLayout()

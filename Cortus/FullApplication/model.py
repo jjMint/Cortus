@@ -183,7 +183,7 @@ class CortusModelCreator:
         X_train, X_test, y_train, y_test = train_test_split(self.dataset, true_labels, test_size=0.3, random_state=43)  # 70% training and 30% test
 
         scaler = StandardScaler()
-        pca = PCA(n_components = 2)
+        pca    = PCA(n_components = 2)
 
         X_std_train = scaler.fit_transform(X_train)
         X_std_train = pca.fit_transform(X_std_train)
@@ -196,6 +196,9 @@ class CortusModelCreator:
             self.knnModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
         if (parametersDict['modelType']) == 'opt' :
             self.optimisedModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
+
+        self.saveModel('resources\\Cortus_PCA.pkl', pca)
+        self.saveModel('resources\\Cortus_Scaler.pkl', pca)
 
 
     def svmModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :

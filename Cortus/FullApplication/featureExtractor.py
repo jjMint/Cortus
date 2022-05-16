@@ -38,13 +38,14 @@ def enablePrint():
 # --------------------------------------------------------------------------------------------
 # Class that handles input and output pathing along with containing feature extraction methods
 class MemoryFeatureExtractor :
+    testProcess = None
 
 
     def __init__(self, inputFolder=None, outputFolder=None, processType=None, flag=None, inputFile=None) :
         if flag == None :
             self.bulkExtractor(inputFolder, outputFolder, processType)
         elif flag == "Single" and inputFile is not None:
-            return self.singleExtractor(inputFile)
+            self.testProcess = self.singleExtractor(inputFile)
             
 
     def callback(loop, callback_event):
@@ -52,8 +53,12 @@ class MemoryFeatureExtractor :
         loop.stop()
         callback_event.set()
 
-    def extractTestProcess(self, file) :
+    
+    def getTestProcess(self) :
+        return self.testProcess
 
+
+    def extractTestProcess(self, file) :
         dumpName = os.fsdecode(file)
         logging.info("Analysing File: " + str(dumpName))
         dumpPath = os.path.join(os.fsdecode(file))
@@ -75,7 +80,7 @@ class MemoryFeatureExtractor :
         except:
             logging.warning("Failed to extract header features")
             pass
-        # registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+        registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
         sectionFeatures                                     = self.createSectionFeatures(r2DumpFile)
         flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
         entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
@@ -99,7 +104,8 @@ class MemoryFeatureExtractor :
             logging.warning("Failed to set a feature for the analysed proccess, could be reduction in quality")
 
         r2DumpFile.quit()
-        return  process.getProcessFeatureTable()
+        print(process.getProcessFeatureTable())
+        return process.getProcessFeatureTable()
 
 
     def createProcessList(self, inputFolder, outputFolder, processType) :
@@ -142,7 +148,7 @@ class MemoryFeatureExtractor :
             # Create the process object per dump and write to to disk
             try :
                 process.setHeaderFeatures(headerFeatures)
-                # process.setRegistryFeatures(registryFeatures)
+                process.setRegistryFeatures(registryFeatures)
                 process.setSectionFeatures(sectionFeatures)
                 process.setFlagFeatures(flagFeatures)
                 process.setEntryPointFeatures(entryPointFeatures)
@@ -154,7 +160,7 @@ class MemoryFeatureExtractor :
                 logging.warning("Failed to set a feature for the analysed proccess, could be reduction in quality")
 
 
-            process.getProcessFeatureTable().to_csv(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'csv')), index=False)
+            process.getProcessFeatureTable().to_pickle(os.path.join(os.fsdecode(outputFolder), dumpName.replace('dmp', 'pkl')))
             r2DumpFile.quit()
 
 
@@ -210,9 +216,9 @@ class MemoryFeatureExtractor :
         sectionFeaturesNamePerms = sectionFeaturesNamePerms.T
         sectionFeaturesNamePerms = sectionFeaturesNamePerms.add_suffix("_perms")
 
-        sectionFeaturesNameSizeContent = {"sectionNameSizeContentFull":sectionFeaturesNameSizeList}
+        sectionFeaturesNameSizeContent = {"sectionSizeFull":[sectionFeaturesNameSizeList]}
         sectionFeaturesNameSizeContentFrame = pd.DataFrame(sectionFeaturesNameSizeContent)
-        sectionFeaturesNamePermsContent = {"sectionNamePermsContentFull":sectionFeaturesNamePermsList}
+        sectionFeaturesNamePermsContent = {"sectionPermsFull":[sectionFeaturesNamePermsList]}
         sectionFeaturesNamePermsFrame = pd.DataFrame(sectionFeaturesNamePermsContent)
 
         sectionFeatures = pd.concat([sectionFeaturesNameSize, sectionFeaturesNamePerms, sectionFeaturesNameSizeContentFrame, sectionFeaturesNamePermsFrame], axis=1)
@@ -244,8 +250,9 @@ class MemoryFeatureExtractor :
         relocationFeaturesCount   = pd.DataFrame({'relocationCount':len(pd.DataFrame(dmpInfoReloc).index)}, index=[0])
 
         relocationContent = relocationFeatures.loc['name'].tolist()
-        relocationContent = {"relocationContent":[relocationContent]}
+        relocationContent = {"relocationContentFull":[relocationContent]}
         relocationContentFrame = pd.DataFrame(relocationContent)
+
         relocationFeatures = pd.concat([relocationContentFrame, relocationFeaturesCount], axis=1)
         return relocationFeatures
 
@@ -254,7 +261,6 @@ class MemoryFeatureExtractor :
         dmpInfoStrings = r2DumpFile.cmdj('izj')
 
         stringsFeatures = pd.DataFrame(dmpInfoStrings).drop(['blocks', 'paddr', 'vaddr'], axis=1)
-        print(stringsFeatures)
         stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectiontypecount_").reset_index(drop=True)
 
         # Here we want to create a list of all the strings per process so we can perform LSH per process 
@@ -262,7 +268,7 @@ class MemoryFeatureExtractor :
         stringContent = {"stringContentFull":[stringContent]}
         stringContentFrame = pd.DataFrame(stringContent)
         sectionContent = stringsFeatures['section'].tolist()
-        stringContent = {"sectionContentFull":[sectionContent]}
+        sectionContent = {"sectionContentFull":[sectionContent]}
         sectionContentFrame = pd.DataFrame(sectionContent)
 
         stringsFeatures = pd.concat([stringsTypeValueCount, sectionContentFrame, stringContentFrame], axis=1)
