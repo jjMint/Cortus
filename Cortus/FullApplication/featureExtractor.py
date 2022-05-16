@@ -87,7 +87,7 @@ class MemoryFeatureExtractor :
         # Create the process object per dump and write to to disk
         try :
             process.setHeaderFeatures(headerFeatures)
-            # process.setRegistryFeatures(registryFeatures)
+            process.setRegistryFeatures(registryFeatures)
             process.setSectionFeatures(sectionFeatures)
             process.setFlagFeatures(flagFeatures)
             process.setEntryPointFeatures(entryPointFeatures)
@@ -130,7 +130,7 @@ class MemoryFeatureExtractor :
             except:
                 logging.warning("Failed to extract header features")
                 pass
-            # registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
+            registryFeatures                                    = self.createRegisterFeatures(r2DumpFile)
             sectionFeatures                                     = self.createSectionFeatures(r2DumpFile)
             flagFeatures                                        = self.createFlagFeatures(r2DumpFile)
             entryPointFeatures                                  = self.createEntryPointFeatures(r2DumpFile)
@@ -196,12 +196,11 @@ class MemoryFeatureExtractor :
         sectionFeaturesNamePerms     = []
         sectionFeaturesNameSizeList  = []
         sectionFeaturesNamePermsList = []
-        print(dmpInfoSection)
         for section in dmpInfoSection:
             sectionFeaturesNameSize.append({section.get('name'): section.get('size')})
             sectionFeaturesNamePerms.append({section.get('name'): section.get('perm')})
-            sectionFeaturesNameSize.append(section.get('name') + '_' + str(section.get('size')))
-            sectionFeaturesNamePerms.append(section.get('name') + '_' + str(section.get('perm')))
+            sectionFeaturesNameSizeList.append(section.get('name') + '_' + str(section.get('size')))
+            sectionFeaturesNamePermsList.append(section.get('name') + '_' + str(section.get('perm')))
 
         sectionFeaturesNameSize = flattenDataFrame(pd.DataFrame.from_dict(sectionFeaturesNameSize))
         sectionFeaturesNameSize = sectionFeaturesNameSize.T
@@ -255,13 +254,14 @@ class MemoryFeatureExtractor :
         dmpInfoStrings = r2DumpFile.cmdj('izj')
 
         stringsFeatures = pd.DataFrame(dmpInfoStrings).drop(['blocks', 'paddr', 'vaddr'], axis=1)
+        print(stringsFeatures)
         stringsTypeValueCount = stringsFeatures['type'].value_counts().rename_axis('unique_values').reset_index(name='counts').set_index('unique_values').T.add_prefix("sectiontypecount_").reset_index(drop=True)
 
         # Here we want to create a list of all the strings per process so we can perform LSH per process 
-        stringContent = stringsFeatures.loc['string'].tolist()
+        stringContent = stringsFeatures['string'].tolist()
         stringContent = {"stringContentFull":[stringContent]}
         stringContentFrame = pd.DataFrame(stringContent)
-        sectionContent = stringsFeatures.loc['section'].tolist()
+        sectionContent = stringsFeatures['section'].tolist()
         stringContent = {"sectionContentFull":[sectionContent]}
         sectionContentFrame = pd.DataFrame(sectionContent)
 

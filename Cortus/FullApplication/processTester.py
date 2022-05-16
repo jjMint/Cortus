@@ -5,6 +5,7 @@ import logging
 import os
 import pandas as pd
 import featureExtractor
+import datasetCreator
 import pickle
 import PySimpleGUI as sg
 import sys
@@ -24,11 +25,20 @@ class CortusModelTester:
 
     def __init__(self, testModel, process):
         logging.info("Creating Cortus Malware Analysis Model")
+
         with open(testModel, 'rb') as modelFile:
             self.model = pickle.load(modelFile)
-        self.processFile = featureExtractor.MemoryFeatureExtractor(flag="Single", inputFile=process)
 
-        self.createModelLayout()
+        self.processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single")
+        self.processFile = datasetCreator.DataLoader(self.processFile, flag="Single")
+
+        self.processFile = self.processFile.drop(['processType'], 1)
+        self.processFile = self.processFile[self.processFile.T[self.processFile.dtypes!=np.object].index]
+
+        predicted_labels = self.model.predict(self.processFile)
+        logging.info(predicted_labels)
+
+        # self.createModelLayout()
 
 
     def createModelLayout(self) :

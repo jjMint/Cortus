@@ -248,7 +248,10 @@ class CortusApplication:
             if event == "-EXTRACTFEATURES-" :
                 infolder    = values["-DMPFOLDER-"]
                 outfolder   = values['-OUTFOLDER-']
-                processType = values["-PROCESSTYPEBEN-"] if not None else values["-PROCESSTYPEMAL-"]
+                if values["-PROCESSTYPEBEN-"] == 1 :
+                    processType = "Benign"
+                elif values["-PROCESSTYPEMAL-"] == 1 :
+                    processType = "Malware"
                 featureExtractor.MemoryFeatureExtractor(infolder, outfolder, processType)
 
 
@@ -302,10 +305,9 @@ class CortusApplication:
         window.close()
         exit()
 
+
     def __init__(self):
         self.startApplication()
-        # self.handleCommands()
 
 
-# if __name__ == '__main__':
 CortusApplication()

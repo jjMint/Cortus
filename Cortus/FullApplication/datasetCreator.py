@@ -59,12 +59,17 @@ class DataLoader :
     outputFolder      = None
     combinedDataFrame = None
 
-    def __init__(self, benInputFolder, malInputFolder, outputFolder) :
+
+    def __init__(self, benInputFolder=None, malInputFolder=None, outputFolder=None, flag=None, singleFrame=None) :
         logging.info("Beginning Data Collation")
         self.benInputFolder = benInputFolder
         self.malInputFolder = malInputFolder
         self.outputFolder = outputFolder
-        self.loadData()
+
+        if flag == "Single" :
+            self.loadSingleData(singleFrame)
+        else :
+            self.loadData()
 
 
     def _saveData(self, dataset, count) :
@@ -82,6 +87,14 @@ class DataLoader :
         self.combinedDataFrame = dataset
 
         return dataset
+
+
+    def loadSingleData(self, singleFrame) :
+        processFeatures = cleanProcessFeatures(singleFrame)
+        processFeatures = self.dataPreProcessing(processFeatures)
+        processFeatures = self.minhashPreProcessing(processFeatures)
+
+        return processFeatures
 
 
     def loadData(self) :
