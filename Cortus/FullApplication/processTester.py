@@ -31,8 +31,11 @@ class CortusModelTester:
         with open(testModel, 'rb') as modelFile:
             self.model = pickle.load(modelFile)
 
-        scaler = StandardScaler()
-        pca = PCA(n_components = 2)
+        with open(os.path.join(workingDirectory, 'resources/Cortus_PCA.pkl'), 'rb') as modelFile:
+            self.pca = pickle.load(modelFile)
+
+        with open(os.path.join(workingDirectory, 'resources/Cortus_Scaler.pkl'), 'rb') as modelFile:
+            self.scaler = pickle.load(modelFile)
 
         self.processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single").getTestProcess()
         self.processFile = datasetCreator.DataLoader(singleFrame=self.processFile, flag="Single").getTestProcess()
@@ -41,8 +44,8 @@ class CortusModelTester:
         self.processFile = self.processFile[self.processFile.T[self.processFile.dtypes!=np.object].index]
         print(self.processFile)
 
-        X_test = scaler.transform(self.processFile)
-        X_test = pca.transform(X_test)
+        X_test = self.scaler.transform(self.processFile)
+        X_test = self.pca.transform(X_test)
                 
         predicted_labels = self.model.predict(X_test)
         logging.info(predicted_labels)

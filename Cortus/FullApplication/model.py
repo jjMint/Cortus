@@ -198,7 +198,8 @@ class CortusModelCreator:
             self.optimisedModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
 
         self.saveModel('resources\\Cortus_PCA.pkl', pca)
-        self.saveModel('resources\\Cortus_Scaler.pkl', pca)
+        self.saveModel('resources\\Cortus_Scaler.pkl', scaler)
+        self.saveModel('resources\\Cortus_SetColumns.pkl', X_std_train.columns)
 
 
     def svmModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
