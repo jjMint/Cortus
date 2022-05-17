@@ -101,25 +101,25 @@ class DataLoader :
         processFeatureFrames = []
         count = 0
 
-        for csvFile in tqdm(os.listdir(self.benInputFolder)) :
+        for file in tqdm(os.listdir(self.benInputFolder)) :
             numFiles = len(os.listdir(self.benInputFolder))
             sg.one_line_progress_meter('Benign Set Collation', count + 1, numFiles)
-            csvFileName = os.fsdecode(csvFile)
-            csvFilePath = os.path.join(os.fsdecode(self.benInputFolder), csvFileName)
+            fileName = os.fsdecode(file)
+            filePath = os.path.join(os.fsdecode(self.benInputFolder), fileName)
 
-            processFeatures = pd.read_pickle(csvFilePath)
+            processFeatures = pd.read_pickle(filePath)
             processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
             count = count + 1
         count = 0
 
-        for csvFile in tqdm(os.listdir(self.malInputFolder)) :
+        for file in tqdm(os.listdir(self.malInputFolder)) :
             numFiles = len(os.listdir(self.malInputFolder))
             sg.one_line_progress_meter('Malware Set Collation', count + 1, numFiles)
-            csvFileName = os.fsdecode(csvFile)
-            csvFilePath = os.path.join(os.fsdecode(self.malInputFolder), csvFileName)
+            fileName = os.fsdecode(file)
+            filePath = os.path.join(os.fsdecode(self.malInputFolder), fileName)
 
-            processFeatures = pd.read_pickle(csvFilePath)
+            processFeatures = pd.read_pickle(filePath)
             processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
             count = count + 1

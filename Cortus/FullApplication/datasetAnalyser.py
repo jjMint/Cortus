@@ -1,40 +1,53 @@
 import numpy as np
 import os
+import sys
+import logging
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from sklearn.preprocessing import LabelEncoder
-from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+# from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
+
+np.set_printoptions(threshold=sys.maxsize)
+logging.basicConfig(level=logging.INFO)
+workingDirectory = os.path.dirname(os.path.abspath(__file__))
 
 class DatasetAnalyser :
     dataset       = None
     datasetLabels = None
 
-    def __init__(self, dataset) :
-        self.dataset = dataset
-        self.datasetLabels = self.dataset[['processType']]
+    def __init__(self, dataset, flag=None) :
+        self.dataset = pd.read_pickle(dataset)
+        self.datasetLabels = self.dataset['processType']
 
-        self.analyzeDataset()
+        self.dataset = self.dataset.drop(['processType', 'registers'], 1)
+        self.dataset = self.dataset[self.dataset.T[self.dataset.dtypes!=np.object].index]
 
-    def analyzeDataset(self, dataset) :
+        self.analyzeProcessedDataset()
+
+
+    def analyzeProcessedDataset(self) :
 
         label_encoder     = LabelEncoder()
-        true_labels       = label_encoder.fit_transform(self.datasetLabels['processType'])
+        true_labels       = label_encoder.fit_transform(self.datasetLabels)
+        scaler = StandardScaler()
+        stdData = scaler.fit_transform(self.dataset)
 
-        feature_selector = SelectKBest(f_regression, k = "all")
-        fit = feature_selector.fit(self.dataset, true_labels)
+        model = RandomForestClassifier()
+        model.fit(stdData, true_labels)
+        importance = model.feature_importances_
+        for i,v in enumerate(importance):
+            feature = self.dataset.columns[i]
+            print('Feature: %s, Score: %.5f' % (feature,v))
 
-        p_values = pd.DataFrame(fit.pvalues_)
-        scores = pd.DataFrame(fit.scores_)
-        input_variable_names = pd.DataFrame(self.dataset.columns)
-        summary_stats = pd.concat([input_variable_names, p_values, scores], axis = 1)
-        summary_stats.columns = ["input_variable", "p_value", "f_score"]
-        summary_stats.sort_values(by = "p_value", inplace = True)
+        fig, (ax1) = plt.subplots(nrows=1, ncols=2, figsize=(20,10))
+        fig.suptitle('Dataset Results and Analysis', fontsize=16)
+        plt.bar([x for x in range(len(importance))], importance)
+        plt.show()
 
-        p_value_threshold = 0.05
-        score_threshold = 5
-        selected_variables = summary_stats.loc[(summary_stats["f_score"] >= score_threshold) &
-                                            (summary_stats["p_value"] <= p_value_threshold)]
-        selected_variables = selected_variables["input_variable"].tolist()
 
-        summary_stats.to_csv(os.path.join(os.fsdecode(self.outFolder), 'datasetsummary.csv'))
+
+
