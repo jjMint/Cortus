@@ -216,9 +216,12 @@ class CortusModelCreator:
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"SVM with Kernel: {parametersDict['kernelType']}")
-        self.saveModel('resources\\Cortus_SVMModel.pkl', model)
-
         self.resultsLayout(resultsDict)
+
+        resultsDict['Model'] = model
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"SVM"}.png')
+        self.saveModel('resources\\Cortus_SVMModel.pkl', resultsDict)
+
 
 
     def knnModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
@@ -232,9 +235,12 @@ class CortusModelCreator:
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "KNN")
-        self.saveModel('resources\\Cortus_KNNModel.pkl', model)
-
         self.resultsLayout(resultsDict)
+
+        resultsDict['Model'] = model
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"KNN"}.png')
+        self.saveModel('resources\\Cortus_KNNModel.pkl', resultsDict)
+
 
 
     def optimisedModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
@@ -248,9 +254,11 @@ class CortusModelCreator:
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "Optimal")
-        self.saveModel('resources\\Cortus_OPTModel.pkl', model)
-
         self.resultsLayout(resultsDict)
+
+        resultsDict['Model'] = model
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"Optimal"}.png')
+        self.saveModel('resources\\Cortus_OPTModel.pkl', resultsDict)
 
 
     def plotResults(self, model, X_train, X_test, Y_train, Y_test, predicted_labels, modelType) :
@@ -297,7 +305,7 @@ class CortusModelCreator:
                 framealpha=0.3, scatterpoints=1)
 
         plt.show(block=False)
-        plt.savefig(os.path.join(workingDirectory, 'resources\\resultplt.png'))
+        plt.savefig(os.path.join(workingDirectory, f'resources\\resultplt{modelType}.png'))
 
 
     def resultsLayout(self, resultsDict):
