@@ -8,6 +8,7 @@
 # training and storage of the trained Cortus model
 # ------------------------------------------------------------------------------------------------------------------
 
+from math import gamma
 import matplotlib.pyplot as plt
 import numpy as np
 import logging
@@ -20,7 +21,8 @@ import seaborn as sns
 
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score, average_precision_score, plot_confusion_matrix, plot_precision_recall_curve
-from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, MaxAbsScaler
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import train_test_split
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
@@ -85,9 +87,9 @@ class CortusModelCreator:
                    ]  
 
         optimalInput = [
-                     [sg.Text('Optimised Model Type', size=(15, 1))],    
-                     [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVMO-', enable_events=True),   
-                      sg.Radio('KNN', 'model', size=(12, 1), k='-KNNO-', enable_events=True)], 
+                     [sg.Text('Optimised Model Type', size=(20, 1))],    
+                     [sg.Radio('SVM', 'modelType', size=(12, 1), k='-SVMO-'),   
+                      sg.Radio('KNN', 'modelType', size=(12, 1), k='-KNNO-')], 
                     ]      
 
         layout = [
@@ -95,8 +97,8 @@ class CortusModelCreator:
                   [sg.HorizontalSeparator()],      
                   [sg.Text('Model Type', size=(15, 1))],      
                   [sg.Radio('SVM', 'model', size=(12, 1), default=True, k='-SVM-', enable_events=True),   
-                   sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True)],
-                  [sg.Radio('Optimised', 'model', size=(20, 1), k='-OPT-', enable_events=True)],   
+                   sg.Radio('KNN', 'model', size=(12, 1), k='-KNN-', enable_events=True),
+                  sg.Radio('Optimised', 'model', size=(12, 1), k='-OPT-', enable_events=True)],   
                   [sg.HorizontalSeparator()],
                   [sg.T(self.SYMBOL_DOWN, enable_events=True, k='-OPEN SEC1-'), sg.T('SVM Parameters', enable_events=True, text_color='white', k='-OPEN SEC1-TEXT')],
                   [self.collapse(svmInput, '-SEC1-')],
@@ -110,7 +112,7 @@ class CortusModelCreator:
                   [sg.Submit('CreateModel'), sg.Button('Exit')]
                  ]    
 
-        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12)) 
+        window = sg.Window('Cortus Machine Learning Model', layout, font=("Helvetica", 12), size=(800, 900)) 
 
         # State operators for tabs
         opened1, opened2, opened3 = False, False, False
@@ -128,7 +130,7 @@ class CortusModelCreator:
                 opened2 = not opened2
                 window['-OPEN SEC2-'].update(self.SYMBOL_DOWN if opened2 else self.SYMBOL_UP)
                 window['-SEC2-'].update(visible=opened2)
-            if event.startswith('-OPEN SEC3-') or event.startswith('-GAUS-'):
+            if event.startswith('-OPEN SEC3-') or event.startswith('-OPT-'):
                 opened3 = not opened3
                 window['-OPEN SEC3-'].update(self.SYMBOL_DOWN if opened3 else self.SYMBOL_UP)
                 window['-SEC3-'].update(visible=opened3)
@@ -155,11 +157,10 @@ class CortusModelCreator:
                         modelParams['weights'] = 'uniform'
                     elif values['Distance'] == 1:
                         modelParams['weights'] = 'distance'
-
                     if values['Auto'] == 1:
                         modelParams['algo'] = 'auto'
                     elif values['Ball_tree'] == 1:
-                        modelParams['algo'] = 'poly'
+                        modelParams['algo'] = 'ball_tree'
                     elif values['Kd_tree'] == 1:
                         modelParams['algo'] = 'kd_tree'
                     elif values['Brute'] == 1:
@@ -223,7 +224,6 @@ class CortusModelCreator:
         self.saveModel('resources\\Cortus_SVMModel.pkl', resultsDict)
 
 
-
     def knnModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
         resultsDict = {}
 
@@ -242,22 +242,58 @@ class CortusModelCreator:
         self.saveModel('resources\\Cortus_KNNModel.pkl', resultsDict)
 
 
-
     def optimisedModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
         resultsDict = {}
+        modelType = parametersDict['optType']
+        model = None
 
-        svc = svm.SVC(kernel='rbf')
-        model = svc.fit(X_train, Y_train)
+        if modelType == 'knn' :
+            modelParamGrid = {}
+            modelParamGrid['weights'] = ['uniform', 'distance']          
+            modelParamGrid['algorithm'] = ['auto', 'ball_tree', 'kd_tree', 'brute'] 
+            modelParamGrid['metric'] = ['euclidean', 'manhattan', 'chebyshev', 'minkowski'] 
+            modelParamGrid['n_neighbors'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+                                             16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+            modelParamGrid['leaf_size'] =   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+                                             16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+            knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski', 
+                                        metric_params=None, n_jobs=1, n_neighbors=30, p=2, weights='uniform')
+            grid = RandomizedSearchCV(knn, modelParamGrid, cv=10, scoring='accuracy')
+            grid.fit(X_train, Y_train)
+
+            logging.info("KNN Best Score " + str(grid.best_score_))
+            logging.info("KNN Best Params " + str(grid.best_params_))
+            model = KNeighborsClassifier(algorithm=grid.best_params_['algorithm'], leaf_size=30, metric='minkowski', 
+                                        metric_params=None, n_jobs=1, n_neighbors=grid.best_params_['n_neighbors'], p=2, weights=grid.best_params_['weights'])
+            model.fit(X_train, Y_train)
+
+
+        if modelType == 'svm' :
+            modelParamGrid = {}
+            modelParamGrid['kernel'] = ['linear', 'poly', 'rbf', 'sigmoid'] 
+            modelParamGrid['coef0'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+                                    16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+            modelParamGrid['degree'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]         
+            svmModel = svm.SVC(kernel='rbf', degree=3, gamma='scale')
+            grid = RandomizedSearchCV(svmModel, modelParamGrid, cv=10, scoring='accuracy')
+            grid.fit(X_train, Y_train)
+
+            logging.info("SVM Best Score " + str(grid.best_score_))
+            logging.info("SVM Best Params " + str(grid.best_params_))
+            model = svm.SVC(kernel=grid.best_params_['kernel'], degree=grid.best_params_['degree'], gamma='scale', coef0=grid.best_params_['coef0'])
+            model.fit(X_train, Y_train)
+
+
         predicted_labels = model.predict(X_test)
         logging.info("Opt Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "Optimal")
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"Optimal {modelType}")
         self.resultsLayout(resultsDict)
 
         resultsDict['Model'] = model
-        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"Optimal"}.png')
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultpltOptimal{modelType}.png')
         self.saveModel('resources\\Cortus_OPTModel.pkl', resultsDict)
 
 
@@ -288,8 +324,8 @@ class CortusModelCreator:
         # Plot Decision Region using mlxtend's awesome plotting function
         ax3 = plot_decision_regions(X=X_train, y=Y_train,
                                     X_highlight=X_test,
-                                    filler_feature_values={2: value}, 
-                                    filler_feature_ranges={2: width}, 
+                                    filler_feature_values={2: value, 3:value}, 
+                                    filler_feature_ranges={2: width, 3:width}, 
                                     clf=model, legend=2, ax=ax3,
                                     scatter_kwargs=scatter_kwargs,
                                     contourf_kwargs=contourf_kwargs,

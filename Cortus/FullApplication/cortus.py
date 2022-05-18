@@ -141,8 +141,7 @@ class CortusApplication:
     def createDataPKLSetWindow(self) :
         dataManagementColumn  = [ [sg.Text("Cortus Data Collation", font=("40"))],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('View selected Process Frame', key="-LOADPKLDATASET-")], 
-                                #   [sg.Button('Analyse Process dataset', key='-PREAN-')],
+                                  [sg.Text('Selected a Process to open a viewing frame', key="-LOADPKLDATASET-")], 
                                   [sg.Button('Create Dataset', key='-CREATEDATASET-'),
                                    sg.In(size=(30, 2), enable_events=True, key="-OUTFOLDER-"),
                                    sg.FolderBrowse()]
@@ -270,7 +269,6 @@ class CortusApplication:
             if event == "-DMPFOLDER-":
                 folder = values["-DMPFOLDER-"]
                 try:
-                    # Get list of files in folder
                     file_list = os.listdir(folder)
                 except:
                     file_list = []
@@ -295,9 +293,10 @@ class CortusApplication:
                                 ]
         dataManagementColumn  = [ [sg.Text("Cortus Data Management")],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Analyse Created Dataset Feature Importance', key="-VIEWSTATS-")],
                                   [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
-                                  [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATEPKLDATASET-")]
+                                  [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATEPKLDATASET-")],
+                                  [sg.Button('Analyse Created Dataset Feature Importance', key="-VIEWSTATS-")]
+
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Cortus Malware Analyzer", font=("50"))],
