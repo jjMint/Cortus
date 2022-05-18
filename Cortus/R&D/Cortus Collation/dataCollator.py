@@ -35,9 +35,10 @@ def enablePrint():
 
 
 def cleanProcessFeatures(processFeatureFrame) :
-    processFeatureFrame = processFeatureFrame.dropna(axis=1)
+    processFeatureFrame = processFeatureFrame.dropna(how='all', axis=1)
     processFeatureFrame = processFeatureFrame.fillna(0)
     processFeatureFrame = processFeatureFrame.drop(['baddr', 'bintype', 'file', 'humansz'], axis=1)
+    processFeatureFrame = processFeatureFrame.loc[:,~processFeatureFrame.columns.duplicated()]
     return processFeatureFrame
 
 
@@ -56,24 +57,22 @@ class DataLoader :
         self.outputFolder = outputFolder
 
     def saveData(self, dataSet, count) :
-        dataSet.to_csv(os.path.join(os.fsdecode(self.outputFolder), 'datasetFinal{}.csv'.format(count)))
+        dataSet.to_pickle(os.path.join(os.fsdecode(self.outputFolder), 'datasetFinal{}.pkl'.format(count)))
 
     def loadData(self) :
         processFeatureFrames = []
-        largerFrames = []
-        counter = 0
 
         for csvFile in tqdm(os.listdir(self.inputFolder)) :
             csvFileName = os.fsdecode(csvFile)
             csvFilePath = os.path.join(os.fsdecode(self.inputFolder), csvFileName)
 
-            processFeatures = pd.read_csv(csvFilePath)
+            processFeatures = pd.read_pickle(csvFilePath)
             processFeatures = cleanProcessFeatures(processFeatures)
             processFeatureFrames.append(processFeatures)
 
         finalDataset = pd.concat(processFeatureFrames, ignore_index=True, axis='rows')
         logging.debug(finalDataset)
-        self.saveData(finalDataset, 'final')
+        self.saveData(finalDataset, 'PKL')
         
 def main(argv) :
     parser = argparse.ArgumentParser(description='Create a complete dataset based on input files')

@@ -43,7 +43,7 @@ class DatasetAnalyser :
             feature = self.dataset.columns[i]
             print('Feature: %s, Score: %.5f' % (feature,v))
 
-        fig, (ax1) = plt.subplots(nrows=1, ncols=2, figsize=(20,10))
+        fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(20,10))
         fig.suptitle('Dataset Results and Analysis', fontsize=16)
         plt.bar([x for x in range(len(importance))], importance)
         plt.show()

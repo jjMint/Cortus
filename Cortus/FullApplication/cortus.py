@@ -295,7 +295,7 @@ class CortusApplication:
                                 ]
         dataManagementColumn  = [ [sg.Text("Cortus Data Management")],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('Analyse Created Dataset', key="-VIEWSTATS-")],
+                                  [sg.Button('Analyse Created Dataset Feature Importance', key="-VIEWSTATS-")],
                                   [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
                                   [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATEPKLDATASET-")]
                                 ]

@@ -160,8 +160,12 @@ class DataLoader :
         dataset['machine']  = pd.Categorical(dataset['machine']).codes
         dataset['static']   = pd.Categorical(dataset['static']).codes
 
+        # Drop unnecessary columns either due to null strings or lack of contextual info
+        dataset = dataset.drop(['class', 'minopsz', 'va', 'fd', 'maxopsz', 'invopsz', 'block', 'compiled', 'compiler', 'dbg_file', 'hdr.csum', 'guid', 'intrp', 'lang', 'cc', 'rip'], 1)
+
+        # Drop process name and all '0' only columns
         dataset = dataset.iloc[: , 1:]
-        dataset.loc[:, ~dataset.eq(0).all()]
+        dataset = dataset.loc[:, ~dataset.eq(0).all()]
 
         return dataset
 

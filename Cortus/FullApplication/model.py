@@ -183,7 +183,7 @@ class CortusModelCreator:
         X_train, X_test, y_train, y_test = train_test_split(self.dataset, true_labels, test_size=0.3, random_state=43)  # 70% training and 30% test
 
         scaler = StandardScaler()
-        pca    = PCA(n_components = 2)
+        pca    = PCA(n_components = 3)
 
         X_std_train = scaler.fit_transform(X_train)
         X_std_train = pca.fit_transform(X_std_train)
@@ -283,13 +283,13 @@ class CortusModelCreator:
         contourf_kwargs = {'alpha': 0.2}
         scatter_highlight_kwargs = {'s': 120, 'label': 'Test data', 'alpha': 0.7}
         # Plotting decision regions
-        value=0.5
-        width=0.25
+        value=1.5
+        width=5.0
         # Plot Decision Region using mlxtend's awesome plotting function
         ax3 = plot_decision_regions(X=X_train, y=Y_train,
                                     X_highlight=X_test,
-                                    # filler_feature_values={2: value, 3: value}, 
-                                    # filler_feature_ranges={2: width, 3: value}, 
+                                    filler_feature_values={2: value}, 
+                                    filler_feature_ranges={2: width}, 
                                     clf=model, legend=2, ax=ax3,
                                     scatter_kwargs=scatter_kwargs,
                                     contourf_kwargs=contourf_kwargs,
