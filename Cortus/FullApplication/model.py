@@ -7,8 +7,9 @@
 # The purpose of this file is to contain all functions and methods associated with the development
 # training and storage of the trained Cortus model
 # ------------------------------------------------------------------------------------------------------------------
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
-from math import gamma
 import matplotlib.pyplot as plt
 import numpy as np
 import logging
@@ -17,10 +18,9 @@ import pandas as pd
 import pickle
 import PySimpleGUI as sg
 import sys
-import seaborn as sns
 
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, average_precision_score, plot_confusion_matrix, plot_precision_recall_curve
+from sklearn.metrics import accuracy_score, average_precision_score, plot_confusion_matrix, plot_precision_recall_curve, classification_report
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import train_test_split
@@ -36,14 +36,9 @@ iconImg = os.path.join(workingDirectory, 'resources\CortusLogoTask.png')
 
 class CortusModelCreator:
     # Define the model, dataset and outpath for saving
-    #-- Options and Built Models --
-    model             = None
-    modelParameters   = None
-
     #-- Datasets and OutFolder --
     dataset           = None
     datasetLabels     = None
-    outFolder         = None
 
     #-- UI STUFF -- 
     SYMBOL_UP =    '▲'
@@ -267,7 +262,6 @@ class CortusModelCreator:
                                         metric_params=None, n_jobs=1, n_neighbors=grid.best_params_['n_neighbors'], p=2, weights=grid.best_params_['weights'])
             model.fit(X_train, Y_train)
 
-
         if modelType == 'svm' :
             modelParamGrid = {}
             modelParamGrid['kernel'] = ['linear', 'poly', 'rbf', 'sigmoid'] 
@@ -283,18 +277,20 @@ class CortusModelCreator:
             model = svm.SVC(kernel=grid.best_params_['kernel'], degree=grid.best_params_['degree'], gamma='scale', coef0=grid.best_params_['coef0'])
             model.fit(X_train, Y_train)
 
-
+        modelName = "Optimal " + modelType.upper()
         predicted_labels = model.predict(X_test)
         logging.info("Opt Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
-        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"Optimal {modelType}")
+        
+        print(classification_report(Y_test, predicted_labels))
+        self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"{modelName}")
         self.resultsLayout(resultsDict)
 
         resultsDict['Model'] = model
-        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultpltOptimal{modelType}.png')
-        self.saveModel('resources\\Cortus_OPTModel.pkl', resultsDict)
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{modelName}.png')
+        self.saveModel(f'resources\\Cortus_OPTModel{modelType.upper()}.pkl', resultsDict)
 
 
     def plotResults(self, model, X_train, X_test, Y_train, Y_test, predicted_labels, modelType) :
@@ -324,8 +320,8 @@ class CortusModelCreator:
         # Plot Decision Region using mlxtend's awesome plotting function
         ax3 = plot_decision_regions(X=X_train, y=Y_train,
                                     X_highlight=X_test,
-                                    filler_feature_values={2: value, 3:value}, 
-                                    filler_feature_ranges={2: width, 3:width}, 
+                                    filler_feature_values={2: value}, 
+                                    filler_feature_ranges={2: width}, 
                                     clf=model, legend=2, ax=ax3,
                                     scatter_kwargs=scatter_kwargs,
                                     contourf_kwargs=contourf_kwargs,
