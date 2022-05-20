@@ -53,7 +53,7 @@ class CortusModelCreator:
         self.dataset = self.dataset.reset_index(drop=True)
         self.dataset_true_labels = self.dataset[['processType']]
         self.dataset = self.dataset.drop(['processType'], 1)
-        self.dataset = self.dataset[self.dataset.T[self.dataset.dtypes!=np.object].index]
+        # self.dataset = self.dataset[self.dataset.T[self.dataset.dtypes!=np.object].index]
 
         self.createModelLayout()
 
@@ -314,7 +314,7 @@ class CortusModelCreator:
         ax2.set_title("Precision Recall Curve")
 
         # -------------Decision Region----------------------#
-        scatter_kwargs = {'s': 120, 'edgecolor': None, 'alpha': 0.7}
+        scatter_kwargs = {'s': 80, 'edgecolor': None, 'alpha': 0.7}
         contourf_kwargs = {'alpha': 0.2}
         scatter_highlight_kwargs = {'s': 120, 'label': 'Test data', 'alpha': 0.7}
         # Plotting decision regions
@@ -326,8 +326,8 @@ class CortusModelCreator:
                                     filler_feature_values={2: value}, 
                                     filler_feature_ranges={2: width}, 
                                     clf=model, legend=2, ax=ax3,
-                                    # scatter_kwargs=scatter_kwargs,
-                                    # contourf_kwargs=contourf_kwargs,
+                                    scatter_kwargs=scatter_kwargs,
+                                    contourf_kwargs=contourf_kwargs,
                                     scatter_highlight_kwargs=scatter_highlight_kwargs)
 
         # Update plot object with X/Y axis labels and Figure Title
@@ -341,7 +341,7 @@ class CortusModelCreator:
 
 
         fig2 = plt.figure()
-        fig2.suptitle('Model 3D plot', fontsize=16)
+        fig2.suptitle('PCA Dataset 3D plot', fontsize=16)
         ax4 = fig2.add_subplot(111, projection='3d')
         colors = {
         0: '#3b4cc0',

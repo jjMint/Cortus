@@ -187,8 +187,11 @@ class DataLoader :
             hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}", 128, planes)
             dataset = pd.concat([dataset, hashBucketFrame], axis=1)
 
-        # Drop the full content
+        # Drop the full content and any other columns that don't contain points of interest
         dataset = dataset.drop(['sectionContentFull', 'sectionSizeFull', 'sectionPermsFull', 'stringContentFull', 'relocationContentFull', 'importNameContentFull', 'importLibContentFull'], 1)
+        datasetlabels = dataset[['processType']]
+        dataset = dataset[dataset.T[dataset.dtypes!=np.object].index]
+        dataset['processType'] = datasetlabels
 
         return dataset
 

@@ -287,7 +287,6 @@ class CortusApplication:
     def createStartupLayout(self) :
         modelManagementColumn = [ [sg.Text("Cortus Model Management")],
                                   [sg.HorizontalSeparator()],
-                                  [sg.Button('View Model', key="-VIEWMODEL-")], 
                                   [sg.Button('Create Model', key="-CREATEMODEL-")],
                                   [sg.Button('Load and Test Model', key="-LOADMODEL-")],
                                 ]
@@ -296,7 +295,6 @@ class CortusApplication:
                                   [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
                                   [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATEPKLDATASET-")],
                                   [sg.Button('Analyse Created Dataset Feature Importance and Correlation', key="-VIEWSTATS-")]
-
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Cortus Malware Analyzer", font=("50"))],

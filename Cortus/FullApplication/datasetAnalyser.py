@@ -47,7 +47,7 @@ class DatasetAnalyser :
 
         importanceFrame = pd.DataFrame.from_dict(importanceFrame, orient='index')
         importanceFrame.columns =['Feature Importance']
-        logging.info(importanceFrame)
+        print(importanceFrame.T)
 
         fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(10,5))
         fig.suptitle('Dataset Feature Importance', fontsize=16)
