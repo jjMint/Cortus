@@ -295,7 +295,7 @@ class CortusApplication:
                                   [sg.HorizontalSeparator()],
                                   [sg.Button('Extract Features from DMP files', key="-LOADDMPPROCESSDATASET-")],
                                   [sg.Button('Create and Pre-process Pickle Dataset', key="-CREATEPKLDATASET-")],
-                                  [sg.Button('Analyse Created Dataset Feature Importance', key="-VIEWSTATS-")]
+                                  [sg.Button('Analyse Created Dataset Feature Importance and Correlation', key="-VIEWSTATS-")]
 
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],

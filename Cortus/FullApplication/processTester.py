@@ -1,4 +1,5 @@
 
+from pyexpat import model
 import numpy as np
 import logging
 import os
@@ -33,6 +34,8 @@ class CortusModelTester:
             self.scaler = pickle.load(scalerFile)
         with open(os.path.join(workingDirectory, 'resources/Cortus_SetColumns.pkl'), 'rb') as columnFile:
             self.columnList = pickle.load(columnFile)
+
+        print(self.model)
 
         processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single").getTestProcess()
         processFile = datasetCreator.DataLoader(singleFrame=processFile, flag="Single").getTestProcess()

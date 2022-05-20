@@ -139,7 +139,7 @@ class DataLoader :
 
         # Find counts of level of permissions
         dataset[dataset.filter(regex='_perms').columns] = dataset[dataset.filter(regex='_perms').columns].apply(lambda col:(pd.Categorical(col).codes))
-        dataset = pd.concat([dataset, pd.DataFrame(dataset[dataset.filter(regex='_perms').columns].stack().groupby(level=0).value_counts().unstack(fill_value=0).add_prefix("permissionCount_"))], axis=1)
+        dataset = pd.concat([dataset, pd.DataFrame(dataset[dataset.filter(regex='_perms').columns].stack().groupby(level=0).value_counts().unstack(fill_value=0).add_prefix("permissionTypeCount_"))], axis=1)
         dataset = dataset.drop(dataset.filter(regex='_perms').columns, axis=1)
 
         # Grab count of interesting memory sections per process dump
@@ -160,8 +160,10 @@ class DataLoader :
         dataset['machine']  = pd.Categorical(dataset['machine']).codes
         dataset['static']   = pd.Categorical(dataset['static']).codes
 
-        # Drop unnecessary columns either due to null strings or lack of contextual info
-        dataset = dataset.drop(['class', 'minopsz', 'va', 'fd', 'maxopsz', 'invopsz', 'block', 'compiled', 'compiler', 'dbg_file', 'hdr.csum', 'guid', 'intrp', 'lang', 'cc', 'rip'], 1)
+        # Drop unnecessary columns either due to null strings or lack of contextual info following analysis
+        dataset = dataset.drop(['class', 'minopsz', 'va', 'fd', 'maxopsz', 'invopsz', 
+                                'block', 'compiled', 'compiler', 'dbg_file', 'hdr.csum', 'guid', 
+                                'intrp', 'lang', 'cc', 'rip', 'pc'], 1)
 
         # Drop process name and all '0' only columns
         dataset = dataset.iloc[: , 1:]
@@ -175,14 +177,14 @@ class DataLoader :
         hashColumnLists = [ ('stringContentFull', 'stringHash'), ('sectionContentFull', 'sectionHash'), ('sectionSizeFull', 'sectionSizeHash'), 
                             ('sectionPermsFull', 'sectionPermsHash'), ('relocationContentFull', 'relocationHash'), ('importNameContentFull', 'importNameHash'), ('importLibContentFull', 'importLibHash')]
 
-        buckets = 600/450
+        buckets = 600/450 # here we define the end number of buckets as ~1 which results in bucket value that can be used as a cluster
         plane  = math.ceil(np.log2(buckets))
         planes = np.array([np.random.normal(size=(128, plane)) for _ in range(10)])
 
         # For each, create a hash, and add the relevant hash columns to the current dataset
         for seriesColumn in hashColumnLists :
             logging.info(f"Hashing {seriesColumn[0]}")
-            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}_", 128, planes)
+            hashBucketFrame = self.stringToMinhash(dataset[seriesColumn[0]], f"{seriesColumn[1]}", 128, planes)
             dataset = pd.concat([dataset, hashBucketFrame], axis=1)
 
         # Drop the full content
@@ -205,8 +207,10 @@ class DataLoader :
             minhashList[i] = minhashList[i]
             clusterBucketList.append(self.bucket_value_of_vector(minhashList[i], planes))
         logging.info("Created Hash Cluster")
-           
-        return pd.DataFrame(clusterBucketList).add_prefix(hashingPrefix)
+        hashFrame = pd.DataFrame(clusterBucketList)
+        hashFrame.columns = [hashingPrefix]
+
+        return hashFrame
 
     
     def bucket_value_of_vector(self, v, planes):

@@ -5,14 +5,15 @@ import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import PySimpleGUI as sg
 
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LinearRegression
 
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
+sns.set_theme(style="white")
 
 class DatasetAnalyser :
     dataset       = None
@@ -24,11 +25,12 @@ class DatasetAnalyser :
 
         dataset = self.dataset.drop(['processType'], 1)
         dataset = dataset[dataset.T[dataset.dtypes!=np.object].index]
+        logging.info(dataset)
 
-        self.analyzeProcessedDatasetImportance(dataset)
+        self.analyseProcessedDatasetImportance(dataset)
 
-    def analyzeProcessedDatasetImportance(self, dataset) :
 
+    def analyseProcessedDatasetImportance(self, dataset) :
         label_encoder     = LabelEncoder()
         true_labels       = label_encoder.fit_transform(self.datasetLabels)
         scaler = StandardScaler()
@@ -37,17 +39,25 @@ class DatasetAnalyser :
         model = RandomForestClassifier()
         model.fit(stdData, true_labels)
         importance = model.feature_importances_
+        importanceFrame = {}
         for i,v in enumerate(importance):
-            feature = self.dataset.columns[i]
-            print('Feature: %s, Score: %.5f' % (feature,v))
+            feature = dataset.columns[i]
+            importanceFrame[feature] = v
 
-        fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(20,10))
-        fig.suptitle('Dataset Results and Analysis', fontsize=16)
-        plt.bar([x for x in range(len(importance))], importance)
-        plt.show()
+        importanceFrame = pd.DataFrame.from_dict(importanceFrame, orient='index')
+        importanceFrame.columns =['Feature Importance']
+        logging.info(importanceFrame)
 
+        fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(10,5))
+        fig.suptitle('Dataset Feature Importance', fontsize=16)
+        importanceFrame.plot.bar(stacked=True, ax=ax1)
+        fig.show()
 
-
-
-
+        fig2, (ax2) = plt.subplots(nrows=1, ncols=1, figsize=(10,5))
+        fig2.suptitle('Dataset Feature Correlation', fontsize=16)
+        corrDataset = self.dataset
+        corrDataset['processType'] = pd.Categorical(corrDataset['processType']).codes
+        corrDataset = corrDataset.corr().round(2)
+        sns.heatmap(corrDataset, ax=ax2)
+        fig2.show()
 
