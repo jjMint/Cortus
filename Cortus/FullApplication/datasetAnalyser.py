@@ -14,6 +14,7 @@ np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
 sns.set_theme(style="white")
+# sns.set(font_scale=0.5)
 
 class DatasetAnalyser :
     dataset       = None
@@ -50,7 +51,8 @@ class DatasetAnalyser :
 
         fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(10,5))
         fig.suptitle('Dataset Feature Importance', fontsize=16)
-        importanceFrame.plot.bar(stacked=True, ax=ax1)
+        importanceFrame.plot.bar(stacked=True, ax=ax1, fontsize=10)
+        fig.tight_layout()
         fig.show()
 
         fig2, (ax2) = plt.subplots(nrows=1, ncols=1, figsize=(10,5))
@@ -59,5 +61,8 @@ class DatasetAnalyser :
         corrDataset['processType'] = pd.Categorical(corrDataset['processType']).codes
         corrDataset = corrDataset.corr().round(2)
         sns.heatmap(corrDataset, ax=ax2)
+        fig2.tight_layout()
         fig2.show()
+
+        plt.tight_layout()
 

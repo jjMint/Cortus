@@ -132,7 +132,7 @@ class DataLoader :
 
 
     def dataPreProcessing(self, dataset) :
-        # Drop 
+        # Drop na values where all are present, along with filling na values with 0 for oddities.
         logging.info("Processing Dataset")
         dataset = dataset.dropna(axis=1, how='all')
         dataset = dataset.fillna(0)
@@ -160,10 +160,10 @@ class DataLoader :
         dataset['machine']  = pd.Categorical(dataset['machine']).codes
         dataset['static']   = pd.Categorical(dataset['static']).codes
 
-        # Drop unnecessary columns either due to null strings or lack of contextual info following analysis
+        # Drop unnecessary columns either due to null strings, statistical outliers or lack of contextual info following analysis
         dataset = dataset.drop(['class', 'minopsz', 'va', 'fd', 'maxopsz', 'invopsz', 
                                 'block', 'compiled', 'compiler', 'dbg_file', 'hdr.csum', 'guid', 
-                                'intrp', 'lang', 'cc', 'rip', 'pc'], 1)
+                                'intrp', 'lang', 'cc', 'rip', 'pc', 'machine', 'bits', 'binsz'], 1)
 
         # Drop process name and all '0' only columns
         dataset = dataset.iloc[: , 1:]
@@ -236,7 +236,7 @@ class DataLoader :
                     [sg.Text('Loading....', font='ANY 15')],
                     [imageElement]
                 ]
-        modelWindow = sg.Window("Cortus Malware Analyzer ( Loading ) ", layout, element_justification='c')
+        modelWindow = sg.Window("Cortus Malware Analyzer ( Loading and Clustering Data ) ", layout, element_justification='c')
 
         while self.combinedDataFrame is None :
             event, values = modelWindow.read(timeout=100)

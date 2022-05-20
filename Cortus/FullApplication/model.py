@@ -214,6 +214,7 @@ class CortusModelCreator:
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, f"SVM with Kernel: {parametersDict['kernelType']}")
         self.resultsLayout(resultsDict)
 
+        print(classification_report(Y_test, predicted_labels))
         resultsDict['Model'] = model
         resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"SVM"}.png')
         self.saveModel('resources\\Cortus_SVMModel.pkl', resultsDict)
@@ -227,6 +228,7 @@ class CortusModelCreator:
         predicted_labels = model.predict(X_test)
         logging.info("KNN Accuracy: {}".format(accuracy_score(Y_test, predicted_labels)))
 
+        print(classification_report(Y_test, predicted_labels))
         resultsDict['Accuracy']          = accuracy_score(Y_test, predicted_labels)
         resultsDict['Average Precision'] = average_precision_score(Y_test, predicted_labels)
         self.plotResults(model, X_train, X_test, Y_train, Y_test, predicted_labels, "KNN")
@@ -266,8 +268,9 @@ class CortusModelCreator:
             modelParamGrid = {}
             modelParamGrid['kernel'] = ['linear', 'poly', 'rbf', 'sigmoid'] 
             modelParamGrid['coef0'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-                                    16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-            modelParamGrid['degree'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]         
+                                       16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+            modelParamGrid['degree'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+                                        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]        
             svmModel = svm.SVC(kernel='rbf', degree=3, gamma='scale')
             grid = RandomizedSearchCV(svmModel, modelParamGrid, cv=10, scoring='accuracy')
             grid.fit(X_train, Y_train)
@@ -315,16 +318,16 @@ class CortusModelCreator:
         contourf_kwargs = {'alpha': 0.2}
         scatter_highlight_kwargs = {'s': 120, 'label': 'Test data', 'alpha': 0.7}
         # Plotting decision regions
-        value=1.5
-        width=5.0
+        value=-0.1
+        width=10.0
         # Plot Decision Region using mlxtend's awesome plotting function
         ax3 = plot_decision_regions(X=X_train, y=Y_train,
                                     X_highlight=X_test,
                                     filler_feature_values={2: value}, 
                                     filler_feature_ranges={2: width}, 
                                     clf=model, legend=2, ax=ax3,
-                                    scatter_kwargs=scatter_kwargs,
-                                    contourf_kwargs=contourf_kwargs,
+                                    # scatter_kwargs=scatter_kwargs,
+                                    # contourf_kwargs=contourf_kwargs,
                                     scatter_highlight_kwargs=scatter_highlight_kwargs)
 
         # Update plot object with X/Y axis labels and Figure Title
@@ -335,6 +338,22 @@ class CortusModelCreator:
         ax3.legend(handles, 
                 ['Benign', 'Malware', 'TestData'], 
                 framealpha=0.3, scatterpoints=1)
+
+
+        fig2 = plt.figure()
+        fig2.suptitle('Model 3D plot', fontsize=16)
+        ax4 = fig2.add_subplot(111, projection='3d')
+        colors = {
+        0: '#3b4cc0',
+        1: '#b40426',
+        }
+        colors = list(map(lambda x: colors[x], Y_train))
+        ax4.scatter(X_train[:, 0], X_train[:, 1], X_train[:, 2], c=colors, marker='o')
+        fig2.show()
+
+        ax4.set_xlabel('PCA 1')
+        ax4.set_ylabel('PCA 2')
+        ax4.set_zlabel('PCA 3')
 
         plt.show(block=False)
         plt.savefig(os.path.join(workingDirectory, f'resources\\resultplt{modelType}.png'))

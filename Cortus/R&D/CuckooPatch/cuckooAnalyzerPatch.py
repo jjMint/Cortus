@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------------------------------------
-# Introduction
+# Cuckoo Analyzer Patch
 # ------------------------------------------------------------------------------------------------------------------
 # Author: Joshua Keegan
 # Patch for Cuckoo that enables process dumping on the cuckoo vm guest via procdump.exe -> SysInternals
