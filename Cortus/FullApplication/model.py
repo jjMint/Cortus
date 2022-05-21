@@ -255,29 +255,28 @@ class CortusModelCreator:
                                              16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
             knn = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='minkowski', 
                                         metric_params=None, n_jobs=1, n_neighbors=30, p=2, weights='uniform')
-            grid = RandomizedSearchCV(knn, modelParamGrid, cv=10, scoring='accuracy')
-            grid.fit(X_train, Y_train)
+            gridKNN = RandomizedSearchCV(knn, modelParamGrid, cv=10, scoring='accuracy')
+            gridKNN.fit(X_train, Y_train)
 
-            logging.info("KNN Best Score " + str(grid.best_score_))
-            logging.info("KNN Best Params " + str(grid.best_params_))
-            model = KNeighborsClassifier(algorithm=grid.best_params_['algorithm'], leaf_size=30, metric='minkowski', 
-                                        metric_params=None, n_jobs=1, n_neighbors=grid.best_params_['n_neighbors'], p=2, weights=grid.best_params_['weights'])
+            logging.info("KNN Best Score " + str(gridKNN.best_score_))
+            logging.info("KNN Best Params " + str(gridKNN.best_params_))
+            model = KNeighborsClassifier(algorithm=gridKNN.best_params_['algorithm'], leaf_size=30, metric='minkowski', 
+                                        metric_params=None, n_jobs=1, n_neighbors=gridKNN.best_params_['n_neighbors'], p=2, weights=gridKNN.best_params_['weights'])
             model.fit(X_train, Y_train)
 
         if modelType == 'svm' :
             modelParamGrid = {}
-            modelParamGrid['kernel'] = ['linear', 'poly', 'rbf', 'sigmoid'] 
+            modelParamGrid['kernel'] = ['linear', 'rbf', 'sigmoid'] 
             modelParamGrid['coef0'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-                                       16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-            modelParamGrid['degree'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-                                        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]        
+                                        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+            # modelParamGrid['degree'] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]        
             svmModel = svm.SVC(kernel='rbf', degree=3, gamma='scale')
-            grid = RandomizedSearchCV(svmModel, modelParamGrid, cv=10, scoring='accuracy')
-            grid.fit(X_train, Y_train)
+            gridSVM = RandomizedSearchCV(svmModel, modelParamGrid, cv=10, scoring='accuracy')
+            gridSVM.fit(X_train, Y_train)
 
-            logging.info("SVM Best Score " + str(grid.best_score_))
-            logging.info("SVM Best Params " + str(grid.best_params_))
-            model = svm.SVC(kernel=grid.best_params_['kernel'], degree=grid.best_params_['degree'], gamma='scale', coef0=grid.best_params_['coef0'])
+            logging.info("SVM Best Score " + str(gridSVM.best_score_))
+            logging.info("SVM Best Params " + str(gridSVM.best_params_))
+            model = svm.SVC(kernel=gridSVM.best_params_['kernel'], gamma='scale', coef0=gridSVM.best_params_['coef0'])
             model.fit(X_train, Y_train)
 
         modelName = "Optimal " + modelType.upper()
