@@ -67,13 +67,17 @@ class DataLoader :
         self.outputFolder = outputFolder
 
         if flag == "Single" :
-            self.loadSingleData(singleFrame)
+            self.testProcess = self.loadSingleData(singleFrame)
         else :
             self.loadData()
 
 
     def _saveData(self, dataset, count) :
         dataset.to_pickle(os.path.join(os.fsdecode(self.outputFolder), 'dataset{}.pkl'.format(count)))
+
+
+    def getTestProcess(self) :
+        return self.testProcess
 
 
     def processAndSaveData(self, processFrame) :
