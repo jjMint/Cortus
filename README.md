@@ -45,6 +45,7 @@ The Cortus Application enables users to extract features from Process memory dum
 ---------------------------------------------------------
 ### Full Application
 The full Cortus Application
+
 ![image](https://user-images.githubusercontent.com/48663333/169799109-2be3d60d-4abb-4f82-ba1a-6c77ee2153de.png)
 
 
@@ -61,20 +62,25 @@ pip3 install  Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and 
 
 #### Functions
 - Create Model -> Create a model from a collated pickle dataset created through the 'Create and Pre-process Pickle Dataset function' and generate results and statistical information 
+
 ![image](https://user-images.githubusercontent.com/48663333/169799215-4803260c-988a-42dc-89ad-db24f7ff9eda.png)
 ![image](https://user-images.githubusercontent.com/48663333/169799068-70a54a80-7425-4936-9f40-10e4434b7558.png)
 
 - Load and Test Model -> Provide a model from disk and a process dmp to be tested
+
 ![image](https://user-images.githubusercontent.com/48663333/169799251-7fdaa9ee-7383-403a-8ccc-edaf013e1fd1.png)
 ![image](https://user-images.githubusercontent.com/48663333/169799269-9573b578-7e40-4f30-99f9-e8996bc52aa7.png)
 
 - Extract Features from DMP files -> Extract features from multiple MDMP files and indicate whether they are malicious or benign, can be used to create ones own set of benign and malicious features to use in the 'Create and Pre-process Pickle Dataset function'
+
 -![image](https://user-images.githubusercontent.com/48663333/169799158-2d3f934c-22a9-4703-b5ad-4eb50a4d1923.png)
 
 - Create and Pre-process Pickle Dataset function -> Provide a folder of benign, and a folder of malicious pkl files through which one can create dataset to train a model on
+
 ![image](https://user-images.githubusercontent.com/48663333/169799198-a26d3280-6f0a-433c-b6f8-f6d18b66cc1e.png)
 
 - Analyse Created Dataset Feature Importance and Correlation -> Provide a dataset to have important features noted and generate images showing so
+
 ![image](https://user-images.githubusercontent.com/48663333/169799348-48590e22-258a-4a02-a8e2-c2a474566df0.png)
 ![image](https://user-images.githubusercontent.com/48663333/169799359-b0fe6cd5-e11a-4848-acce-39c18905ed1b.png)
 
