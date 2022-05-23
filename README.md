@@ -81,8 +81,8 @@ pip3 install  Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and 
 
 - Analyse Created Dataset Feature Importance and Correlation -> Provide a dataset to have important features noted and generate images showing so
 
-![image](https://user-images.githubusercontent.com/48663333/169799348-48590e22-258a-4a02-a8e2-c2a474566df0.png)
-![image](https://user-images.githubusercontent.com/48663333/169799359-b0fe6cd5-e11a-4848-acce-39c18905ed1b.png)
+![image](https://user-images.githubusercontent.com/48663333/169799500-e9142b7c-3094-4698-a31f-5aa9ee6542be.png)
+![image](https://user-images.githubusercontent.com/48663333/169799509-eb540ed1-80f0-43f3-a105-6760b0bdfd52.png)
 
 ---------------------------------------------------------
 ### R&D
