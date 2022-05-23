@@ -30,11 +30,11 @@ class CortusModelTester:
         with open(testModel, 'rb') as modelFile:
             modelDetails = pickle.load(modelFile)
         self.model = modelDetails['Model']
-        with open(os.path.join(workingDirectory, 'resources/Cortus_PCA.pkl'), 'rb') as pcaFile:
+        with open(os.path.join(workingDirectory, 'resources', 'Cortus_PCA.pkl'), 'rb') as pcaFile:
             self.pca = pickle.load(pcaFile)
-        with open(os.path.join(workingDirectory, 'resources/Cortus_Scaler.pkl'), 'rb') as scalerFile:
+        with open(os.path.join(workingDirectory, 'resources', 'Cortus_Scaler.pkl'), 'rb') as scalerFile:
             self.scaler = pickle.load(scalerFile)
-        with open(os.path.join(workingDirectory, 'resources/Cortus_SetColumns.pkl'), 'rb') as columnFile:
+        with open(os.path.join(workingDirectory, 'resources', 'Cortus_SetColumns.pkl'), 'rb') as columnFile:
             self.columnList = pickle.load(columnFile)
 
         processFile = featureExtractor.MemoryFeatureExtractor(inputFile=process, flag="Single").getTestProcess()
@@ -65,7 +65,7 @@ class CortusModelTester:
         sg.popup(f'Process {process} is determined to be {result} with confidence of {accuracyConfidence}')
 
     def loadingScreeen(self) :
-        imageElement = sg.Image(os.path.join(workingDirectory, 'resources\loadingbar.gif'), size=(400, 400), key='-IMAGE-')
+        imageElement = sg.Image(os.path.join(workingDirectory, 'resources', 'loadingbar.gif'), size=(400, 400), key='-IMAGE-')
         layout = [  
                     [sg.Text('Testing Process....', font='ANY 15')],
                     [imageElement]
@@ -74,6 +74,6 @@ class CortusModelTester:
 
         while self.loading is True :
             event, values = modelWindow.read(timeout=100)
-            modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources\loadingbar.gif'), 100)
+            modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources', 'loadingbar.gif'), 100)
         
         modelWindow.close()

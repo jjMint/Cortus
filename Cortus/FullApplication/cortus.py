@@ -38,7 +38,7 @@ while True:
 logging.basicConfig(level=logging.INFO)
 sg.theme('Black')
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
-iconImg = os.path.join(workingDirectory, 'resources\CortusLogoTask.png')
+iconImg = os.path.join(workingDirectory, 'resources', 'CortusLogoTask.png')
 
 class CortusApplication:
     model       = None
@@ -298,7 +298,7 @@ class CortusApplication:
                                 ]
         layout                = [ [sg.Titlebar("Cortus Malware Analyzer", icon=iconImg)],
                                   [sg.Text("Cortus Malware Analyzer", font=("50"))],
-                                  [sg.Image(os.path.join(workingDirectory, 'resources\CortusLogo.png'), size=(200, 200), key='-IMAGE-')],
+                                  [sg.Image(os.path.join(workingDirectory, 'resources', 'CortusLogo.png'), size=(200, 200), key='-IMAGE-')],
                                   [sg.HorizontalSeparator()],
                                   [sg.Column(modelManagementColumn, vertical_alignment='t'),
                                    sg.VSeperator(),

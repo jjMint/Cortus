@@ -193,9 +193,9 @@ class CortusModelCreator:
         if (parametersDict['modelType']) == 'opt' :
             self.optimisedModel(X_std_train, X_std_test, y_train, y_test, parametersDict )
 
-        self.saveModel('resources\\Cortus_PCA.pkl', pca)
-        self.saveModel('resources\\Cortus_Scaler.pkl', scaler)
-        self.saveModel('resources\\Cortus_SetColumns.pkl', self.dataset.columns)
+        self.saveModel(os.path.join('resources', 'Cortus_PCA.pkl'), pca)
+        self.saveModel(os.path.join('resources', 'Cortus_Scaler.pkl'), scaler)
+        self.saveModel(os.path.join('resources', 'Cortus_SetColumns.pkl'), self.dataset.columns)
 
 
     def svmModel(self, X_train, X_test, Y_train, Y_test, parametersDict) :
@@ -216,7 +216,7 @@ class CortusModelCreator:
 
         print(classification_report(Y_test, predicted_labels))
         resultsDict['Model'] = model
-        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"SVM"}.png')
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, 'resources', f'resultplt{"SVM"}.png')
         self.saveModel('resources\\Cortus_SVMModel.pkl', resultsDict)
 
 
@@ -235,7 +235,7 @@ class CortusModelCreator:
         self.resultsLayout(resultsDict)
 
         resultsDict['Model'] = model
-        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{"KNN"}.png')
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, 'resources', f'resultplt{"KNN"}.png')
         self.saveModel('resources\\Cortus_KNNModel.pkl', resultsDict)
 
 
@@ -291,7 +291,7 @@ class CortusModelCreator:
         self.resultsLayout(resultsDict)
 
         resultsDict['Model'] = model
-        resultsDict['resultImagePath'] = os.path.join(workingDirectory, f'resources\\resultplt{modelName}.png')
+        resultsDict['resultImagePath'] = os.path.join(workingDirectory, 'resources', f'resultplt{modelName}.png')
         self.saveModel(f'resources\\Cortus_OPTModel{modelType.upper()}.pkl', resultsDict)
 
 
@@ -355,7 +355,7 @@ class CortusModelCreator:
         ax4.set_zlabel('PCA 3')
 
         plt.show(block=False)
-        plt.savefig(os.path.join(workingDirectory, f'resources\\resultplt{modelType}.png'))
+        plt.savefig(os.path.join(workingDirectory, 'resources', f'resultplt{modelType}.png'))
 
 
     def resultsLayout(self, resultsDict):

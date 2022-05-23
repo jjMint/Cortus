@@ -247,6 +247,6 @@ class DataLoader :
 
         while self.combinedDataFrame is None :
             event, values = modelWindow.read(timeout=100)
-            modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources\loadingbar.gif'), 100)
+            modelWindow.Element('-IMAGE-').UpdateAnimation(os.path.join(workingDirectory, 'resources', 'loadingbar.gif'), 100)
         
         modelWindow.close()
