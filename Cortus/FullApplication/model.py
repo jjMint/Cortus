@@ -31,7 +31,7 @@ from mlxtend.plotting import plot_decision_regions
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
-iconImg = os.path.join(workingDirectory, 'resources\CortusLogoTask.png')
+iconImg = os.path.join(workingDirectory, 'resources', 'CortusLogoTask.png')
 
 
 class CortusModelCreator:

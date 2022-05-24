@@ -12,7 +12,7 @@ import sys
 np.set_printoptions(threshold=sys.maxsize)
 logging.basicConfig(level=logging.INFO)
 workingDirectory = os.path.dirname(os.path.abspath(__file__))
-iconImg = os.path.join(workingDirectory, 'resources\CortusLogoTask.png')
+iconImg = os.path.join(workingDirectory, 'resources', 'CortusLogoTask.png')
 
 
 class CortusModelTester:
@@ -54,15 +54,15 @@ class CortusModelTester:
         if predicted_label[0] == 1:
             result == "Malicious"
 
-        accuracyConfidence = round(modelDetails['Accuracy'], 2)
-        precisionConfidence = round(modelDetails['Average Precision'], 2)
+        accuracyConfidence = round(modelDetails['Accuracy'], 2) * 100
+        precisionConfidence = round(modelDetails['Average Precision'], 2) * 100
 
         logging.info(result)
         self.createModelLayout(result, process, accuracyConfidence, precisionConfidence)
 
 
     def createModelLayout(self, result, process, accuracyConfidence, precisionConfidence) :
-        sg.popup(f'Process {process} is determined to be {result} with confidence of {accuracyConfidence}')
+        sg.popup(f'Process {process} is determined to be {result} with confidence of {precisionConfidence}%')
 
     def loadingScreeen(self) :
         imageElement = sg.Image(os.path.join(workingDirectory, 'resources', 'loadingbar.gif'), size=(400, 400), key='-IMAGE-')
