@@ -34,6 +34,7 @@ pip3 install  Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and 
 
 for linux these as well:
 sudo apt-get install tcl-dev tk-dev python-tk python3-tk 
+sudo apt-get install python3-pil.imagetk
 ```
 - MDMP files to extract features from. Easiest way to gain this file type is a process dump using SysInternals ProcDump Tool https://docs.microsoft.com/en-us/sysinternals/downloads/procdump
 - This application was created to be used on Windows, as such the file path indicators '/' won't work on Linux so some images will be missing
