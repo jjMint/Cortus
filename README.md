@@ -15,7 +15,6 @@ It also contains the code used to create a machine learning model of the extract
 - Must have radare2 and r2Env installed in order to perform feature extraction (https://github.com/radareorg/radare2)
 ```
 git clone https://github.com/radareorg/radare2
-radare2/sys/install.sh
 
 Default Windows builds use MSVC, so run those .bat:
 
