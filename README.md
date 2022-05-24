@@ -13,6 +13,18 @@ It also contains the code used to create a machine learning model of the extract
 ## Requirements
 ---------------------------------------------------------
 - Must have radare2 and r2Env installed in order to perform feature extraction (https://github.com/radareorg/radare2)
+```
+git clone https://github.com/radareorg/radare2
+radare2/sys/install.sh
+
+Default Windows builds use MSVC, so run those .bat:
+
+preconfigure.bat       REM setup python, meson, ninja
+configure.bat          REM run meson b + vs project
+make.bat               REM run ninja -C b
+prefix\bin\radare2.exe
+```
+
 - Python libraries required are: Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and threading, argparse, matplotlib
 ```
 pip3 install  Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and threading, argparse, matplotlib
