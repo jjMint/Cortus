@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import matplotlib.pyplot as plt
+plt.switch_backend("TkAgg")
 import pandas as pd
 import seaborn as sns
 import PySimpleGUI as sg

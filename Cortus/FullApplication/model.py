@@ -11,6 +11,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import matplotlib.pyplot as plt
+plt.switch_backend("TkAgg")
 import numpy as np
 import logging
 import os
