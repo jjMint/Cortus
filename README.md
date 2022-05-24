@@ -8,6 +8,7 @@ This repository concerns the install of Cuckoo and Radare2 along with the script
 
 It also contains the code used to create a machine learning model of the extracted features as a proof of concept of the value derived from only process memory.
 
+### PLEASE NOTE -> Advice is to run this application on Linux, it will work on Windows, by radare2 build process and runtime can be temperamental
 
 ---------------------------------------------------------
 ## Requirements
