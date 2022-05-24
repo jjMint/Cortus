@@ -17,7 +17,10 @@ It also contains the code used to create a machine learning model of the extract
 ```
 git clone https://github.com/radareorg/radare2
 
-Default Windows builds use MSVC, so run those .bat:
+( Must have make and gcc or visual studio with c++ / c libraries installed )
+radare2/sys/install.sh
+
+Else, default Windows builds use MSVC, so run those .bat, although the created environment will require install of the below python libraries into it:
 
 preconfigure.bat       REM setup python, meson, ninja
 configure.bat          REM run meson b + vs project
