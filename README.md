@@ -8,7 +8,7 @@ This repository concerns the install of Cuckoo and Radare2 along with the script
 
 It also contains the code used to create a machine learning model of the extracted features as a proof of concept of the value derived from only process memory.
 
-### PLEASE NOTE -> Advice is to run this application on Linux, it will work on Windows, but radare2 build process and runtime can be temperamental
+### PLEASE NOTE -> Advice is to run this application on Linux, it will work on Windows, but radare2 build process and runtime can be temperamental with the command handling sometimes leading to an atttibute error on Windows
 
 ---------------------------------------------------------
 ## Requirements
@@ -68,7 +68,7 @@ The full Cortus Application
 - Must have radare2 and r2Env installed in order to perform feature extraction (https://github.com/radareorg/radare2)
 - Python libraries required are: Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and threading, argparse, matplotlib
 ```
-pip3 install  Pandas, Sklearn, pickle, logging, PySimpleGui, Seaborn, numpy and threading, argparse, matplotlib
+pip3 install Pandas Sklearn PySimpleGui Seaborn numpy argparse matplotlib tqdm datasketch mlxtend r2pipe
 ```
 - To run the Cortus Application, use python3 cortus.py -> will open the SimpleGui application
 
