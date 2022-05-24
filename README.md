@@ -13,7 +13,7 @@ It also contains the code used to create a machine learning model of the extract
 ---------------------------------------------------------
 ## Requirements
 ---------------------------------------------------------
-- Must have radare2 and r2Env installed in order to perform feature extraction (https://github.com/radareorg/radare2) -> Follow this page or else the application will fail on feature extraction (https://book.rada.re/first_steps/windows_compilation.html)
+- Must have radare2 and r2Env installed in order to perform feature extraction (https://github.com/radareorg/radare2) -> Follow this page for windows or else the application will fail on feature extraction (https://book.rada.re/first_steps/windows_compilation.html)
 ```
 git clone https://github.com/radareorg/radare2
 
