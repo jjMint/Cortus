@@ -338,6 +338,8 @@ class CortusModelCreator:
                 ['Benign', 'Malware', 'TestData'], 
                 framealpha=0.3, scatterpoints=1)
 
+        plt.show(block=False)
+        plt.savefig(os.path.join(workingDirectory, 'resources', f'resultplt{modelType}.png'))
 
         fig2 = plt.figure()
         fig2.suptitle('PCA Dataset 3D plot', fontsize=16)
@@ -354,8 +356,8 @@ class CortusModelCreator:
         ax4.set_ylabel('PCA 2')
         ax4.set_zlabel('PCA 3')
 
-        plt.show(block=False)
-        plt.savefig(os.path.join(workingDirectory, 'resources', f'resultplt{modelType}.png'))
+        # plt.show(block=False)
+        # plt.savefig(os.path.join(workingDirectory, 'resources', f'resultplt{modelType}.png'))
 
 
     def resultsLayout(self, resultsDict):

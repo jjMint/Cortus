@@ -238,7 +238,7 @@ class DataLoader :
 
     
     def loadingScreeen(self) :
-        imageElement = sg.Image(os.path.join(workingDirectory, 'resources\loadingbar.gif'), size=(400, 400), key='-IMAGE-')
+        imageElement = sg.Image(os.path.join(workingDirectory, 'resources', 'loadingbar.gif'), size=(400, 400), key='-IMAGE-')
         layout = [  
                     [sg.Text('Loading....', font='ANY 15')],
                     [imageElement]
